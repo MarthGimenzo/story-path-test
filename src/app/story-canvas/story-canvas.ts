@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { Character, StoryEdge, StoryNode } from '../story.types';
 
 @Component({
@@ -12,41 +12,96 @@ export class StoryCanvas {
   @Input() edges: StoryEdge[] = [];
   @Input() characters: Character[] = [];
 
-  readonly NODE_WIDTH = 190;
-  readonly NODE_HEIGHT = 80;
-  readonly COL_SPACING = 250;
-  readonly ROW_SPACING = 260;
-  readonly PADDING_X = 75;
-  readonly PADDING_BOTTOM = 55;
-  readonly SVG_HEIGHT = 580;
+  @Output() encounterAdded  = new EventEmitter<{ parentId: string; charId: string }>();
+  @Output() mergeRequested  = new EventEmitter<{ parentId: string; mergeWithId: string }>();
 
+  // ── Layout constanten ──────────────────────────────────────────────────────
+  readonly NODE_WIDTH    = 190;
+  readonly COL_SPACING   = 260;
+  readonly ROW_SPACING   = 280;
+  readonly PADDING_X     = 80;
+  readonly PADDING_BOTTOM = 55;
+
+  readonly DOTS_PER_ROW  = 6;
+  readonly DOT_R         = 8;   // straal van karakter-dot
+  readonly DOT_GAP       = 5;
+  readonly DOT_AREA_TOP  = 50;  // Y waar dots beginnen (relatief aan node top)
+
+  // ── Picker state ───────────────────────────────────────────────────────────
+  pickerParentId: string | null = null;
+  availableChars: Character[]   = [];
+  mergeableGroups: StoryNode[]  = [];
+
+  // ── SVG afmetingen ─────────────────────────────────────────────────────────
   get svgWidth(): number {
     const maxCol = this.nodes.reduce((max, n) => Math.max(max, n.col), 0);
     return Math.max(500, this.PADDING_X * 2 + (maxCol + 1) * this.COL_SPACING);
   }
 
-  getRowLabelY(row: number): number {
-    const node = this.nodes.find(n => n.row === row);
-    return node ? this.getNodeY(node) + this.NODE_HEIGHT / 2 + 5 : -100;
+  get svgHeight(): number {
+    const maxRow = this.nodes.reduce((max, n) => Math.max(max, n.row), 0);
+    return Math.max(480, this.PADDING_BOTTOM + (maxRow + 2) * this.ROW_SPACING);
   }
 
-  getCharacter(id: string): Character | undefined {
-    return this.characters.find(c => c.id === id);
+  // ── Node hoogte (dynamisch op basis van groepsgrootte) ─────────────────────
+  getNodeHeight(node: StoryNode): number {
+    const rows = Math.ceil(node.characters.length / this.DOTS_PER_ROW);
+    return this.DOT_AREA_TOP + rows * (this.DOT_R * 2 + this.DOT_GAP) + 14;
   }
 
+  // ── Positie berekeningen ───────────────────────────────────────────────────
   getNodeX(node: StoryNode): number {
     return this.PADDING_X + node.col * this.COL_SPACING;
   }
 
   getNodeY(node: StoryNode): number {
-    const offsetInSlot = (this.ROW_SPACING - this.NODE_HEIGHT) / 2;
-    return this.SVG_HEIGHT - this.PADDING_BOTTOM - (node.row + 1) * this.ROW_SPACING + offsetInSlot;
+    const h = this.getNodeHeight(node);
+    const slotCenterY = this.svgHeight - this.PADDING_BOTTOM - (node.row + 0.5) * this.ROW_SPACING;
+    return slotCenterY - h / 2;
   }
 
   getNodeCenterX(node: StoryNode): number {
     return this.getNodeX(node) + this.NODE_WIDTH / 2;
   }
 
+  getRowLabelY(row: number): number {
+    const node = this.nodes.find(n => n.row === row);
+    if (!node) return -100;
+    const h = this.getNodeHeight(node);
+    return this.getNodeY(node) + h / 2 + 5;
+  }
+
+  get activeRows(): number[] {
+    return [...new Set(this.nodes.map(n => n.row))].sort((a, b) => a - b);
+  }
+
+  rowLabel(row: number): string {
+    return row === 0 ? 'BEGIN' : `H.${row}`;
+  }
+
+  // ── Dot posities ───────────────────────────────────────────────────────────
+  getDotCx(index: number, total: number): number {
+    const col       = index % this.DOTS_PER_ROW;
+    const rowIndex  = Math.floor(index / this.DOTS_PER_ROW);
+    const totalRows = Math.ceil(total / this.DOTS_PER_ROW);
+    const charsInRow = rowIndex === totalRows - 1
+      ? total - rowIndex * this.DOTS_PER_ROW
+      : this.DOTS_PER_ROW;
+    const step      = this.DOT_R * 2 + this.DOT_GAP;
+    const rowWidth  = charsInRow * step - this.DOT_GAP;
+    return this.NODE_WIDTH / 2 - rowWidth / 2 + this.DOT_R + col * step;
+  }
+
+  getDotCy(index: number, total: number, node: StoryNode): number {
+    const rowIndex  = Math.floor(index / this.DOTS_PER_ROW);
+    const totalRows = Math.ceil(total / this.DOTS_PER_ROW);
+    const h         = this.getNodeHeight(node);
+    const step      = this.DOT_R * 2 + this.DOT_GAP;
+    // Dots van onder naar boven: rij 0 = onderste rij
+    return h - 10 - (totalRows - 1 - rowIndex) * step - this.DOT_R;
+  }
+
+  // ── Edges ──────────────────────────────────────────────────────────────────
   getEdgePath(edge: StoryEdge): string {
     const from = this.nodes.find(n => n.id === edge.from)!;
     const to   = this.nodes.find(n => n.id === edge.to)!;
@@ -54,10 +109,45 @@ export class StoryCanvas {
     const x1 = this.getNodeCenterX(from);
     const y1 = this.getNodeY(from);
     const x2 = this.getNodeCenterX(to);
-    const y2 = this.getNodeY(to) + this.NODE_HEIGHT - 2;
+    const y2 = this.getNodeY(to) + this.getNodeHeight(to) - 2;
 
     const midY = (y1 + y2) / 2;
     return `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`;
+  }
+
+  // ── Leaf nodes = actieve groepen (geen uitgaande edges) ────────────────────
+  get leafNodes(): StoryNode[] {
+    const withOutgoing = new Set(this.edges.map(e => e.from));
+    return this.nodes.filter(n => !withOutgoing.has(n.id));
+  }
+
+  // ── Picker ─────────────────────────────────────────────────────────────────
+  openPicker(nodeId: string, event: MouseEvent): void {
+    event.stopPropagation();
+    this.pickerParentId = nodeId;
+
+    const activeChars = new Set<string>();
+    this.leafNodes.forEach(n => n.characters.forEach(c => activeChars.add(c)));
+
+    this.availableChars   = this.characters.filter(c => !activeChars.has(c.id));
+    this.mergeableGroups  = this.leafNodes.filter(n => n.id !== nodeId);
+  }
+
+  selectCharacter(charId: string): void {
+    if (!this.pickerParentId) return;
+    this.encounterAdded.emit({ parentId: this.pickerParentId, charId });
+    this.pickerParentId = null;
+  }
+
+  selectMerge(mergeWithId: string): void {
+    if (!this.pickerParentId) return;
+    this.mergeRequested.emit({ parentId: this.pickerParentId, mergeWithId });
+    this.pickerParentId = null;
+  }
+
+  // ── Kleur hulpfuncties ─────────────────────────────────────────────────────
+  getCharacter(id: string): Character | undefined {
+    return this.characters.find(c => c.id === id);
   }
 
   getNodeFill(type: string): string {
@@ -82,18 +172,6 @@ export class StoryCanvas {
       split:     '#ffb74d',
     };
     return map[node.type] ?? '#4b5563';
-  }
-
-  getDotX(index: number, total: number): number {
-    const DOT_DIAMETER = 20;
-    const GAP = 5;
-    const totalWidth = total * DOT_DIAMETER + (total - 1) * GAP;
-    const startX = this.NODE_WIDTH / 2 - totalWidth / 2 + DOT_DIAMETER / 2;
-    return startX + index * (DOT_DIAMETER + GAP);
-  }
-
-  getDotY(): number {
-    return this.NODE_HEIGHT - 20;
   }
 
   getTypeLabelColor(type: string): string {

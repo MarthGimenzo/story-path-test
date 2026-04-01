@@ -27,6 +27,8 @@
     [nodes]="nodes"
     [edges]="edges"
     [characters]="characters"
+    (encounterAdded)="onEncounterAdded($event)"
+    (mergeRequested)="onMergeRequested($event)"
   />
 
 </div>

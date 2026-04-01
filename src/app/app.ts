@@ -33,36 +33,8 @@ export class App {
     { id: 'douwe',    name: 'Douwe',    color: '#90caf9' },
   ];
 
-  private readonly allNodes: StoryNode[] = [
-    { id: 'start-jouke',    characters: ['jouke'],    label: 'Jouke',    description: 'Startpunt', col: 0, row: 0, type: 'start' },
-    { id: 'start-thijs',    characters: ['thijs'],    label: 'Thijs',    description: 'Startpunt', col: 0, row: 0, type: 'start' },
-    { id: 'start-berber',   characters: ['berber'],   label: 'Berber',   description: 'Startpunt', col: 0, row: 0, type: 'start' },
-    { id: 'start-diederik', characters: ['diederik'], label: 'Diederik', description: 'Startpunt', col: 0, row: 0, type: 'start' },
-    { id: 'start-niels',    characters: ['niels'],    label: 'Niels',    description: 'Startpunt', col: 0, row: 0, type: 'start' },
-    { id: 'start-dieuwke',  characters: ['dieuwke'],  label: 'Dieuwke',  description: 'Startpunt', col: 0, row: 0, type: 'start' },
-    { id: 'start-rik',      characters: ['rik'],      label: 'Rik',      description: 'Startpunt', col: 0, row: 0, type: 'start' },
-    { id: 'start-lisa',     characters: ['lisa'],     label: 'Lisa',     description: 'Startpunt', col: 0, row: 0, type: 'start' },
-    { id: 'start-doetie',   characters: ['doetie'],   label: 'Doetie',   description: 'Startpunt', col: 0, row: 0, type: 'start' },
-    { id: 'start-boyd',     characters: ['boyd'],     label: 'Boyd',     description: 'Startpunt', col: 0, row: 0, type: 'start' },
-    { id: 'start-ilva',     characters: ['ilva'],     label: 'Ilva',     description: 'Startpunt', col: 0, row: 0, type: 'start' },
-    { id: 'start-helga',    characters: ['helga'],    label: 'Helga',    description: 'Startpunt', col: 0, row: 0, type: 'start' },
-    { id: 'start-dietie',   characters: ['dietie'],   label: 'Dietie',   description: 'Startpunt', col: 0, row: 0, type: 'start' },
-    { id: 'start-janne',    characters: ['janne'],    label: 'Janne',    description: 'Startpunt', col: 0, row: 0, type: 'start' },
-    { id: 'start-pascal',   characters: ['pascal'],   label: 'Pascal',   description: 'Startpunt', col: 0, row: 0, type: 'start' },
-    { id: 'start-douwe',    characters: ['douwe'],    label: 'Douwe',    description: 'Startpunt', col: 0, row: 0, type: 'start' },
-
-    { id: 'enc-jouke-rik',    characters: ['jouke', 'rik'],    label: 'Ontmoeting', description: 'Jouke vindt Rik',    col: 0, row: 1, type: 'encounter' },
-    { id: 'solo-thijs',       characters: ['thijs'],           label: 'Soloreis',   description: 'Thijs trekt verder', col: 0, row: 1, type: 'event'     },
-    { id: 'enc-ilva-berber',  characters: ['ilva', 'berber'],  label: 'Ontmoeting', description: 'Ilva vindt Berber',  col: 0, row: 1, type: 'encounter' },
-    { id: 'enc-douwe-pascal', characters: ['douwe', 'pascal'], label: 'Ontmoeting', description: 'Douwe vindt Pascal', col: 0, row: 1, type: 'encounter' },
-  ];
-
-  private readonly allEdges: StoryEdge[] = [
-    { id: 'e1', from: 'start-jouke', to: 'enc-jouke-rik'    },
-    { id: 'e2', from: 'start-thijs', to: 'solo-thijs'       },
-    { id: 'e3', from: 'start-ilva',  to: 'enc-ilva-berber'  },
-    { id: 'e4', from: 'start-douwe', to: 'enc-douwe-pascal' },
-  ];
+  extraNodes: StoryNode[] = [];
+  extraEdges: StoryEdge[] = [];
 
   toggleStarter(charId: string): void {
     const next = new Set(this.selectedStarters);
@@ -70,35 +42,76 @@ export class App {
     this.selectedStarters = next;
   }
 
-  get nodes(): StoryNode[] {
-    const startNodes: StoryNode[] = [];
+  get startNodes(): StoryNode[] {
+    const result: StoryNode[] = [];
     let col = 0;
-
     for (const char of this.characters) {
       if (this.selectedStarters.has(char.id)) {
-        const node = this.allNodes.find(n => n.type === 'start' && n.characters[0] === char.id);
-        if (node) startNodes.push({ ...node, col: col++ });
+        result.push({
+          id: `start-${char.id}`,
+          characters: [char.id],
+          label: char.name,
+          description: 'Startpunt',
+          col: col++,
+          row: 0,
+          type: 'start',
+        });
       }
     }
+    return result;
+  }
 
-    const activeStartIds = new Set(startNodes.map(n => n.id));
-    const encounterNodes: StoryNode[] = [];
-
-    for (const edge of this.allEdges) {
-      if (activeStartIds.has(edge.from)) {
-        const encNode = this.allNodes.find(n => n.id === edge.to);
-        if (encNode) {
-          const parentCol = startNodes.find(n => n.id === edge.from)!.col;
-          encounterNodes.push({ ...encNode, col: parentCol });
-        }
-      }
-    }
-
-    return [...startNodes, ...encounterNodes];
+  get nodes(): StoryNode[] {
+    return [...this.startNodes, ...this.extraNodes];
   }
 
   get edges(): StoryEdge[] {
-    const activeIds = new Set(this.nodes.map(n => n.id));
-    return this.allEdges.filter(e => activeIds.has(e.from) && activeIds.has(e.to));
+    return [...this.extraEdges];
+  }
+
+  /** Eén nieuw karakter ontmoet de groep → volledige groep + nieuw karakter. */
+  onEncounterAdded(event: { parentId: string; charId: string }): void {
+    const parent = this.nodes.find(n => n.id === event.parentId)!;
+    const char   = this.characters.find(c => c.id === event.charId)!;
+
+    const newNode: StoryNode = {
+      id: `enc-${Date.now()}`,
+      characters: [...parent.characters, char.id],
+      label: 'Ontmoeting',
+      description: `${char.name} sluit aan`,
+      col: parent.col,
+      row: parent.row + 1,
+      type: 'encounter',
+    };
+
+    this.extraNodes = [...this.extraNodes, newNode];
+    this.extraEdges = [...this.extraEdges, { id: `e-${newNode.id}`, from: event.parentId, to: newNode.id }];
+  }
+
+  /** Twee groepen smelten samen → gecombineerde groep. */
+  onMergeRequested(event: { parentId: string; mergeWithId: string }): void {
+    const a = this.nodes.find(n => n.id === event.parentId)!;
+    const b = this.nodes.find(n => n.id === event.mergeWithId)!;
+
+    const mergedChars = [...new Set([...a.characters, ...b.characters])];
+    const mergedCol   = (a.col + b.col) / 2;
+    const mergedRow   = Math.max(a.row, b.row) + 1;
+
+    const newNode: StoryNode = {
+      id: `merge-${Date.now()}`,
+      characters: mergedChars,
+      label: 'Samenvoeging',
+      description: 'Groepen komen samen',
+      col: mergedCol,
+      row: mergedRow,
+      type: 'encounter',
+    };
+
+    this.extraNodes = [...this.extraNodes, newNode];
+    this.extraEdges = [
+      ...this.extraEdges,
+      { id: `e-a-${newNode.id}`, from: event.parentId,   to: newNode.id },
+      { id: `e-b-${newNode.id}`, from: event.mergeWithId, to: newNode.id },
+    ];
   }
 }
