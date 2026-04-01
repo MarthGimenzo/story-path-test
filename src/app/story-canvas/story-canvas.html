@@ -108,6 +108,14 @@
           <text [attr.x]="NODE_WIDTH / 2" y="-11" text-anchor="middle" class="add-plus">+</text>
         </g>
 
+        <!-- '✕' verwijderknop (alleen op niet-start nodes) -->
+        @if (node.type !== 'start') {
+          <g class="remove-btn" (click)="nodeRemoved.emit(node.id); $event.stopPropagation()">
+            <circle [attr.cx]="NODE_WIDTH - 10" cy="10" r="9" class="remove-circle" />
+            <text [attr.x]="NODE_WIDTH - 10" y="14" text-anchor="middle" class="remove-x">✕</text>
+          </g>
+        }
+
       </g>
     }
 

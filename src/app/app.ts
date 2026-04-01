@@ -88,6 +88,19 @@ export class App {
     this.extraEdges = [...this.extraEdges, { id: `e-${newNode.id}`, from: event.parentId, to: newNode.id }];
   }
 
+  /** Verwijder een node + alle opvolgers (cascade). */
+  onNodeRemoved(nodeId: string): void {
+    const toRemove = new Set<string>();
+    const queue = [nodeId];
+    while (queue.length) {
+      const current = queue.shift()!;
+      toRemove.add(current);
+      this.extraEdges.filter(e => e.from === current).forEach(e => queue.push(e.to));
+    }
+    this.extraNodes = this.extraNodes.filter(n => !toRemove.has(n.id));
+    this.extraEdges = this.extraEdges.filter(e => !toRemove.has(e.from) && !toRemove.has(e.to));
+  }
+
   /** Twee groepen smelten samen → gecombineerde groep. */
   onMergeRequested(event: { parentId: string; mergeWithId: string }): void {
     const a = this.nodes.find(n => n.id === event.parentId)!;

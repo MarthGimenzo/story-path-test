@@ -17,6 +17,29 @@
 
 /* ── '+' knop ── */
 .add-btn { cursor: pointer; }
+/* ── '✕' verwijderknop ── */
+.remove-btn { cursor: pointer; }
+
+.remove-circle {
+  fill: #1a0808;
+  stroke: #3a1818;
+  stroke-width: 1.5;
+  transition: fill 0.15s, stroke 0.15s;
+}
+.remove-btn:hover .remove-circle {
+  fill: #3a0f0f;
+  stroke: #ef5350;
+}
+
+.remove-x {
+  fill: #5a2a2a;
+  font-size: 9px;
+  font-family: monospace;
+  font-weight: bold;
+  pointer-events: none;
+  transition: fill 0.15s;
+}
+.remove-btn:hover .remove-x { fill: #ef5350; }
 
 .add-circle {
   fill: #0d1f30;

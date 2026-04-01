@@ -14,6 +14,7 @@ export class StoryCanvas {
 
   @Output() encounterAdded  = new EventEmitter<{ parentId: string; charId: string }>();
   @Output() mergeRequested  = new EventEmitter<{ parentId: string; mergeWithId: string }>();
+  @Output() nodeRemoved     = new EventEmitter<string>();
 
   // ── Layout constanten ──────────────────────────────────────────────────────
   readonly NODE_WIDTH    = 190;
