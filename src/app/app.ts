@@ -37,6 +37,7 @@ export class App {
   readonly SVG_HEIGHT = 580;
 
   selectedStarters = new Set<string>(['jouke', 'thijs', 'ilva', 'douwe']);
+  settingsOpen = false;
 
   readonly characters: Character[] = [
     { id: 'jouke',    name: 'Jouke',    color: '#4fc3f7' },
