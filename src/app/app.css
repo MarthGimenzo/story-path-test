@@ -63,13 +63,8 @@
   margin: 0 auto;
 }
 
-/* ── Roster ── */
-.roster {
-  width: 100%;
-  max-width: 1180px;
-}
-
-.roster-title {
+/* ── Gedeeld label ── */
+.section-label {
   font-size: 11px;
   letter-spacing: 2px;
   text-transform: uppercase;
@@ -77,12 +72,19 @@
   margin-bottom: 12px;
 }
 
-.roster-grid {
+/* ── Startpunten picker ── */
+.starter-picker {
+  width: 100%;
+  max-width: 1180px;
+}
+
+.picker-grid {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
+/* ── Karakter chip (button variant) ── */
 .char-chip {
   display: flex;
   align-items: center;
@@ -92,6 +94,46 @@
   border-radius: 20px;
   padding: 5px 12px 5px 8px;
   font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  font-family: inherit;
+}
+
+.char-chip:hover {
+  border-color: #2a4060;
+  background: #112235;
+}
+
+.char-chip.active {
+  border-color: var(--char-color, #4fc3f7);
+  background: color-mix(in srgb, var(--char-color, #4fc3f7) 12%, #0d1f30);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--char-color, #4fc3f7) 30%, transparent);
+}
+
+.char-chip.active .char-name {
+  color: var(--char-color, #4fc3f7);
+}
+
+/* ── Karakter chip (statisch, roster) ── */
+.char-chip.static {
+  cursor: default;
+}
+
+.char-chip.static:hover {
+  border-color: #1a3050;
+  background: #0d1f30;
+}
+
+/* ── Roster ── */
+.roster {
+  width: 100%;
+  max-width: 1180px;
+}
+
+.roster-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .char-dot {

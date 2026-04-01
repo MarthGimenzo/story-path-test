@@ -28,14 +28,15 @@ export interface StoryEdge {
   styleUrl: './app.css'
 })
 export class App {
-  readonly SVG_WIDTH = 1120;
-  readonly SVG_HEIGHT = 580;
   readonly NODE_WIDTH = 190;
   readonly NODE_HEIGHT = 80;
   readonly COL_SPACING = 250;
   readonly ROW_SPACING = 260;
   readonly PADDING_X = 75;
   readonly PADDING_BOTTOM = 55;
+  readonly SVG_HEIGHT = 580;
+
+  selectedStarters = new Set<string>(['jouke', 'thijs', 'ilva', 'douwe']);
 
   readonly characters: Character[] = [
     { id: 'jouke',    name: 'Jouke',    color: '#4fc3f7' },
@@ -56,26 +57,94 @@ export class App {
     { id: 'douwe',    name: 'Douwe',    color: '#90caf9' },
   ];
 
-  readonly nodes: StoryNode[] = [
-    // Row 0 — Startpunten
-    { id: 'start-jouke', characters: ['jouke'],  label: 'Jouke',  description: 'Startpunt', col: 0, row: 0, type: 'start' },
-    { id: 'start-thijs', characters: ['thijs'],  label: 'Thijs',  description: 'Startpunt', col: 1, row: 0, type: 'start' },
-    { id: 'start-ilva',  characters: ['ilva'],   label: 'Ilva',   description: 'Startpunt', col: 2, row: 0, type: 'start' },
-    { id: 'start-douwe', characters: ['douwe'],  label: 'Douwe',  description: 'Startpunt', col: 3, row: 0, type: 'start' },
+  private readonly allNodes: StoryNode[] = [
+    // Row 0 — Startpunten (één per karakter, dynamisch in/uit)
+    { id: 'start-jouke',    characters: ['jouke'],    label: 'Jouke',    description: 'Startpunt', col: 0, row: 0, type: 'start' },
+    { id: 'start-thijs',    characters: ['thijs'],    label: 'Thijs',    description: 'Startpunt', col: 0, row: 0, type: 'start' },
+    { id: 'start-berber',   characters: ['berber'],   label: 'Berber',   description: 'Startpunt', col: 0, row: 0, type: 'start' },
+    { id: 'start-diederik', characters: ['diederik'], label: 'Diederik', description: 'Startpunt', col: 0, row: 0, type: 'start' },
+    { id: 'start-niels',    characters: ['niels'],    label: 'Niels',    description: 'Startpunt', col: 0, row: 0, type: 'start' },
+    { id: 'start-dieuwke',  characters: ['dieuwke'],  label: 'Dieuwke',  description: 'Startpunt', col: 0, row: 0, type: 'start' },
+    { id: 'start-rik',      characters: ['rik'],      label: 'Rik',      description: 'Startpunt', col: 0, row: 0, type: 'start' },
+    { id: 'start-lisa',     characters: ['lisa'],     label: 'Lisa',     description: 'Startpunt', col: 0, row: 0, type: 'start' },
+    { id: 'start-doetie',   characters: ['doetie'],   label: 'Doetie',   description: 'Startpunt', col: 0, row: 0, type: 'start' },
+    { id: 'start-boyd',     characters: ['boyd'],     label: 'Boyd',     description: 'Startpunt', col: 0, row: 0, type: 'start' },
+    { id: 'start-ilva',     characters: ['ilva'],     label: 'Ilva',     description: 'Startpunt', col: 0, row: 0, type: 'start' },
+    { id: 'start-helga',    characters: ['helga'],    label: 'Helga',    description: 'Startpunt', col: 0, row: 0, type: 'start' },
+    { id: 'start-dietie',   characters: ['dietie'],   label: 'Dietie',   description: 'Startpunt', col: 0, row: 0, type: 'start' },
+    { id: 'start-janne',    characters: ['janne'],    label: 'Janne',    description: 'Startpunt', col: 0, row: 0, type: 'start' },
+    { id: 'start-pascal',   characters: ['pascal'],   label: 'Pascal',   description: 'Startpunt', col: 0, row: 0, type: 'start' },
+    { id: 'start-douwe',    characters: ['douwe'],    label: 'Douwe',    description: 'Startpunt', col: 0, row: 0, type: 'start' },
 
     // Row 1 — Eerste ontmoetingen
-    { id: 'enc-jouke-rik',    characters: ['jouke', 'rik'],    label: 'Ontmoeting',  description: 'Jouke vindt Rik',    col: 0, row: 1, type: 'encounter' },
-    { id: 'solo-thijs',       characters: ['thijs'],           label: 'Soloreis',    description: 'Thijs trekt verder', col: 1, row: 1, type: 'event'     },
-    { id: 'enc-ilva-berber',  characters: ['ilva', 'berber'],  label: 'Ontmoeting',  description: 'Ilva vindt Berber',  col: 2, row: 1, type: 'encounter' },
-    { id: 'enc-douwe-pascal', characters: ['douwe', 'pascal'], label: 'Ontmoeting',  description: 'Douwe vindt Pascal', col: 3, row: 1, type: 'encounter' },
+    { id: 'enc-jouke-rik',    characters: ['jouke', 'rik'],    label: 'Ontmoeting', description: 'Jouke vindt Rik',    col: 0, row: 1, type: 'encounter' },
+    { id: 'solo-thijs',       characters: ['thijs'],           label: 'Soloreis',   description: 'Thijs trekt verder', col: 0, row: 1, type: 'event'     },
+    { id: 'enc-ilva-berber',  characters: ['ilva', 'berber'],  label: 'Ontmoeting', description: 'Ilva vindt Berber',  col: 0, row: 1, type: 'encounter' },
+    { id: 'enc-douwe-pascal', characters: ['douwe', 'pascal'], label: 'Ontmoeting', description: 'Douwe vindt Pascal', col: 0, row: 1, type: 'encounter' },
   ];
 
-  readonly edges: StoryEdge[] = [
+  private readonly allEdges: StoryEdge[] = [
     { id: 'e1', from: 'start-jouke', to: 'enc-jouke-rik'    },
     { id: 'e2', from: 'start-thijs', to: 'solo-thijs'       },
     { id: 'e3', from: 'start-ilva',  to: 'enc-ilva-berber'  },
     { id: 'e4', from: 'start-douwe', to: 'enc-douwe-pascal' },
   ];
+
+  toggleStarter(charId: string): void {
+    const next = new Set(this.selectedStarters);
+    if (next.has(charId)) {
+      next.delete(charId);
+    } else {
+      next.add(charId);
+    }
+    this.selectedStarters = next;
+  }
+
+  get nodes(): StoryNode[] {
+    // Wijs kolommen dynamisch toe op basis van volgorde in characters[]
+    const startNodes: StoryNode[] = [];
+    let col = 0;
+
+    for (const char of this.characters) {
+      if (this.selectedStarters.has(char.id)) {
+        const node = this.allNodes.find(n => n.type === 'start' && n.characters[0] === char.id);
+        if (node) {
+          startNodes.push({ ...node, col: col++ });
+        }
+      }
+    }
+
+    // Encounter-nodes: alleen tonen als hun start-node actief is;
+    // neem de kolom over van die start-node
+    const activeStartIds = new Set(startNodes.map(n => n.id));
+    const encounterNodes: StoryNode[] = [];
+
+    for (const edge of this.allEdges) {
+      if (activeStartIds.has(edge.from)) {
+        const encNode = this.allNodes.find(n => n.id === edge.to);
+        if (encNode) {
+          const parentCol = startNodes.find(n => n.id === edge.from)!.col;
+          encounterNodes.push({ ...encNode, col: parentCol });
+        }
+      }
+    }
+
+    return [...startNodes, ...encounterNodes];
+  }
+
+  get edges(): StoryEdge[] {
+    const activeIds = new Set(this.nodes.map(n => n.id));
+    return this.allEdges.filter(e => activeIds.has(e.from) && activeIds.has(e.to));
+  }
+
+  get svgWidth(): number {
+    return Math.max(500, this.PADDING_X * 2 + this.selectedStarters.size * this.COL_SPACING);
+  }
+
+  getRowLabelY(row: number): number {
+    const node = this.nodes.find(n => n.row === row);
+    return node ? this.getNodeY(node) + this.NODE_HEIGHT / 2 + 5 : -100;
+  }
 
   getCharacter(id: string): Character | undefined {
     return this.characters.find(c => c.id === id);
@@ -85,7 +154,6 @@ export class App {
     return this.PADDING_X + node.col * this.COL_SPACING;
   }
 
-  /** Row 0 = onderaan, hogere rows gaan omhoog (kleinere y in SVG). */
   getNodeY(node: StoryNode): number {
     const slotHeight = this.ROW_SPACING;
     const offsetInSlot = (slotHeight - this.NODE_HEIGHT) / 2;
@@ -96,15 +164,14 @@ export class App {
     return this.getNodeX(node) + this.NODE_WIDTH / 2;
   }
 
-  /** Gebogen bezier-pad van bovenkant van-node naar onderkant naar-node. */
   getEdgePath(edge: StoryEdge): string {
     const from = this.nodes.find(n => n.id === edge.from)!;
     const to   = this.nodes.find(n => n.id === edge.to)!;
 
     const x1 = this.getNodeCenterX(from);
-    const y1 = this.getNodeY(from);                      // bovenkant from-node
+    const y1 = this.getNodeY(from);
     const x2 = this.getNodeCenterX(to);
-    const y2 = this.getNodeY(to) + this.NODE_HEIGHT - 2; // onderkant to-node
+    const y2 = this.getNodeY(to) + this.NODE_HEIGHT - 2;
 
     const midY = (y1 + y2) / 2;
     return `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`;
@@ -121,7 +188,6 @@ export class App {
     return map[type] ?? '#111827';
   }
 
-  /** Voor start-nodes: gebruik de kleur van het enige karakter als border. */
   getNodeStroke(node: StoryNode): string {
     if (node.type === 'start' && node.characters.length === 1) {
       return this.getCharacter(node.characters[0])?.color ?? '#4fc3f7';
@@ -135,7 +201,6 @@ export class App {
     return map[node.type] ?? '#4b5563';
   }
 
-  /** Bereken x-positie voor een karakter-dot in een node (gecentreerd). */
   getDotX(index: number, total: number): number {
     const DOT_DIAMETER = 20;
     const GAP = 5;
@@ -148,7 +213,6 @@ export class App {
     return this.NODE_HEIGHT - 20;
   }
 
-  /** Label (type badge) kleur */
   getTypeLabelColor(type: string): string {
     const map: Record<string, string> = {
       start:     '#4fc3f7',

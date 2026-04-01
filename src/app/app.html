@@ -9,21 +9,36 @@
     </div>
   </header>
 
+  <!-- Startpunten picker -->
+  <section class="starter-picker">
+    <h2 class="section-label">Startpunten kiezen</h2>
+    <div class="picker-grid">
+      @for (char of characters; track char.id) {
+        <button
+          class="char-chip"
+          [class.active]="selectedStarters.has(char.id)"
+          [style.--char-color]="char.color"
+          (click)="toggleStarter(char.id)"
+        >
+          <span class="char-dot" [style.background]="char.color"></span>
+          <span class="char-name">{{ char.name }}</span>
+        </button>
+      }
+    </div>
+  </section>
+
   <!-- Canvas -->
   <div class="canvas-wrap">
     <svg
-      [attr.width]="SVG_WIDTH"
+      [attr.width]="svgWidth"
       [attr.height]="SVG_HEIGHT"
       class="story-svg"
     >
       <defs>
-        <!-- Pijlpunt -->
         <marker id="arrow" markerWidth="10" markerHeight="7"
                 refX="9" refY="3.5" orient="auto">
           <polygon points="0 0, 10 3.5, 0 7" fill="#7c5cbf" />
         </marker>
-
-        <!-- Gloed-filter voor startkarakters -->
         <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
           <feGaussianBlur stdDeviation="4" result="blur" />
           <feMerge>
@@ -33,7 +48,7 @@
         </filter>
       </defs>
 
-      <!-- ── Tijdlijn-achtergrond (subtiele verticale banen) ── -->
+      <!-- Verticale tijdlijn-banen -->
       @for (node of nodes; track node.id) {
         @if (node.row === 0) {
           <line
@@ -48,10 +63,10 @@
         }
       }
 
-      <!-- ── Rij-label: "Begin" ── -->
+      <!-- Rij-labels -->
       <text
         [attr.x]="PADDING_X - 10"
-        [attr.y]="getNodeY(nodes[0]) + NODE_HEIGHT / 2 + 5"
+        [attr.y]="getRowLabelY(0)"
         text-anchor="end"
         fill="#3a5068"
         font-size="11"
@@ -59,10 +74,9 @@
         letter-spacing="1"
       >BEGIN</text>
 
-      <!-- ── Rij-label: "Hoofdstuk 1" ── -->
       <text
         [attr.x]="PADDING_X - 10"
-        [attr.y]="getNodeY(nodes[4]) + NODE_HEIGHT / 2 + 5"
+        [attr.y]="getRowLabelY(1)"
         text-anchor="end"
         fill="#3a5068"
         font-size="11"
@@ -70,7 +84,7 @@
         letter-spacing="1"
       >H.1</text>
 
-      <!-- ── Pijlen (onder de nodes getekend) ── -->
+      <!-- Pijlen -->
       @for (edge of edges; track edge.id) {
         <path
           [attr.d]="getEdgePath(edge)"
@@ -83,11 +97,10 @@
         />
       }
 
-      <!-- ── Nodes ── -->
+      <!-- Nodes -->
       @for (node of nodes; track node.id) {
         <g [attr.transform]="'translate(' + getNodeX(node) + ',' + getNodeY(node) + ')'">
 
-          <!-- Node achtergrond -->
           <rect
             [attr.width]="NODE_WIDTH"
             [attr.height]="NODE_HEIGHT"
@@ -98,7 +111,6 @@
             [attr.filter]="node.type === 'start' ? 'url(#glow)' : null"
           />
 
-          <!-- Type-badge (kleine tekst bovenin) -->
           <rect
             x="10" y="8"
             rx="4"
@@ -118,7 +130,6 @@
             font-weight="bold"
           >{{ node.label }}</text>
 
-          <!-- Beschrijving -->
           <text
             [attr.x]="NODE_WIDTH / 2"
             y="44"
@@ -128,7 +139,6 @@
             font-family="'Segoe UI', Arial, sans-serif"
           >{{ node.description }}</text>
 
-          <!-- Karakter-dots -->
           @for (charId of node.characters; track charId; let i = $index) {
             <circle
               [attr.cx]="getDotX(i, node.characters.length)"
@@ -151,15 +161,27 @@
         </g>
       }
 
+      <!-- Lege staat -->
+      @if (nodes.length === 0) {
+        <text
+          [attr.x]="svgWidth / 2"
+          [attr.y]="SVG_HEIGHT / 2"
+          text-anchor="middle"
+          fill="#3a5068"
+          font-size="14"
+          font-family="monospace"
+        >Kies minimaal één startpunt hierboven</text>
+      }
+
     </svg>
   </div>
 
   <!-- Karakter-roster -->
   <section class="roster">
-    <h2 class="roster-title">Bondgenoten</h2>
+    <h2 class="section-label">Bondgenoten</h2>
     <div class="roster-grid">
       @for (char of characters; track char.id) {
-        <div class="char-chip">
+        <div class="char-chip static">
           <span class="char-dot" [style.background]="char.color"></span>
           <span class="char-name">{{ char.name }}</span>
         </div>
