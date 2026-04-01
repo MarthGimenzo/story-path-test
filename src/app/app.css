@@ -1,0 +1,106 @@
+/* ── Global reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Page layout ── */
+.page {
+  min-height: 100vh;
+  background: #08111e;
+  color: #e0eaf4;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 32px 48px;
+  gap: 28px;
+}
+
+/* ── Header ── */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  align-self: flex-start;
+}
+
+.header-icon {
+  font-size: 32px;
+  line-height: 1;
+  color: #9c6fce;
+  text-shadow: 0 0 12px #9c6fce88;
+}
+
+.header-title {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #4fc3f7, #9c6fce);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.header-sub {
+  font-size: 12px;
+  color: #4a6a8a;
+  letter-spacing: 1px;
+  margin-top: 2px;
+}
+
+/* ── Canvas ── */
+.canvas-wrap {
+  background: #0c1824;
+  border: 1px solid #1a3050;
+  border-radius: 12px;
+  overflow-x: auto;
+  padding: 16px;
+  width: 100%;
+  max-width: 1180px;
+}
+
+.story-svg {
+  display: block;
+  margin: 0 auto;
+}
+
+/* ── Roster ── */
+.roster {
+  width: 100%;
+  max-width: 1180px;
+}
+
+.roster-title {
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #3a5068;
+  margin-bottom: 12px;
+}
+
+.roster-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.char-chip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: #0d1f30;
+  border: 1px solid #1a3050;
+  border-radius: 20px;
+  padding: 5px 12px 5px 8px;
+  font-size: 13px;
+}
+
+.char-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.char-name {
+  color: #a8c0d8;
+}
