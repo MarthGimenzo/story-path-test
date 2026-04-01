@@ -1,0 +1,31 @@
+@if (open) {
+  <div class="sidebar-backdrop" (click)="closed.emit()"></div>
+}
+
+<aside class="sidebar" [class.open]="open">
+  <div class="sidebar-header">
+    <span class="sidebar-title">Instellingen</span>
+    <button class="sidebar-close" (click)="closed.emit()" title="Sluiten">✕</button>
+  </div>
+
+  <div class="sidebar-section">
+    <h3 class="sidebar-section-title">Startpunten</h3>
+    <p class="sidebar-section-desc">
+      Kies met welke karakters de game kan beginnen.
+      Elke selectie vormt een eigen startverhaallijn.
+    </p>
+    <div class="sidebar-picker">
+      @for (char of characters; track char.id) {
+        <button
+          class="char-chip"
+          [class.active]="selectedStarters.has(char.id)"
+          [style.--char-color]="char.color"
+          (click)="toggled.emit(char.id)"
+        >
+          <span class="char-dot" [style.background]="char.color"></span>
+          <span class="char-name">{{ char.name }}</span>
+        </button>
+      }
+    </div>
+  </div>
+</aside>

@@ -1,0 +1,14 @@
+.canvas-wrap {
+  background: #0c1824;
+  border: 1px solid #1a3050;
+  border-radius: 12px;
+  overflow-x: auto;
+  padding: 16px;
+  width: 100%;
+  max-width: 1180px;
+}
+
+.story-svg {
+  display: block;
+  margin: 0 auto;
+}
