@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, ElementRef, EventEmitter, Input, NgZone, OnChanges, Output, SimpleChanges } from '@angular/core';
+import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, EventEmitter, Input, NgZone, OnChanges, OnDestroy, Output, SimpleChanges } from '@angular/core';
 import { Character, StoryEdge, StoryNode } from '../story.types';
 
 // ── Lane-layout hulptype ──────────────────────────────────────────────────────
@@ -11,13 +11,34 @@ interface Lane { id: number; avgCol: number; nodeIds: string[]; }
   styleUrl: './story-canvas.css',
   standalone: true,
 })
-export class StoryCanvas implements OnChanges {
+export class StoryCanvas implements OnChanges, AfterViewInit, OnDestroy {
 
   constructor(
     private readonly el:  ElementRef,
     private readonly zone: NgZone,
     private readonly cdr:  ChangeDetectorRef,
   ) {}
+
+  private wheelListener!: (e: WheelEvent) => void;
+
+  ngAfterViewInit(): void {
+    // Niet-passieve wheel listener zodat preventDefault() werkt voor zoom
+    this.wheelListener = (e: WheelEvent) => {
+      if (!e.metaKey && !e.ctrlKey) return;
+      e.preventDefault();
+      const host = this.el.nativeElement as HTMLElement;
+      const rect = host.getBoundingClientRect();
+      const mx   = e.clientX - rect.left;
+      const my   = e.clientY - rect.top;
+      const factor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
+      this.zone.run(() => this.applyZoom(this.zoom * factor, mx, my));
+    };
+    (this.el.nativeElement as HTMLElement).addEventListener('wheel', this.wheelListener, { passive: false });
+  }
+
+  ngOnDestroy(): void {
+    (this.el.nativeElement as HTMLElement).removeEventListener('wheel', this.wheelListener);
+  }
 
   /** Effectieve kolom per node-id na lane-conflict-oplossing. */
   effectiveCols: Map<string, number> = new Map();
@@ -116,8 +137,8 @@ export class StoryCanvas implements OnChanges {
     const host = this.el.nativeElement as HTMLElement;
     const cx = host.clientWidth  / 2;
     const cy = host.clientHeight / 2;
-    const targetX = cx - this.getNodeCenterX(node);
-    const targetY = cy - (this.getNodeY(node) + this.getNodeHeight(node) / 2);
+    const targetX = cx - this.getNodeCenterX(node) * this.zoom;
+    const targetY = cy - (this.getNodeY(node) + this.getNodeHeight(node) / 2) * this.zoom;
     this.animatePan(targetX, targetY, 1000);
   }
 
@@ -177,7 +198,7 @@ export class StoryCanvas implements OnChanges {
   onPanStart(event: MouseEvent): void {
     // Alleen slepen als achtergrond geklikt (niet een interactief element)
     const target = event.target as Element;
-    if (target.closest('foreignObject, .picker-overlay')) return;
+    if (target.closest('foreignObject, .picker-overlay, .zoom-controls')) return;
     this.isDragging = true;
     this.didPan     = false;
     this.dragLastX  = event.clientX;
@@ -198,6 +219,38 @@ export class StoryCanvas implements OnChanges {
 
   onPanEnd(): void {
     this.isDragging = false;
+  }
+
+  // ── Zoom state ─────────────────────────────────────────────────────────────
+  zoom = 1.0;
+  readonly ZOOM_MIN = 0.2;
+  readonly ZOOM_MAX = 3.0;
+
+  get zoomLabel(): string {
+    return Math.round(this.zoom * 100) + '%';
+  }
+
+  zoomIn(): void {
+    const host = this.el.nativeElement as HTMLElement;
+    this.applyZoom(this.zoom * 1.25, host.clientWidth / 2, host.clientHeight / 2);
+  }
+
+  zoomOut(): void {
+    const host = this.el.nativeElement as HTMLElement;
+    this.applyZoom(this.zoom / 1.25, host.clientWidth / 2, host.clientHeight / 2);
+  }
+
+  zoomReset(): void {
+    const host = this.el.nativeElement as HTMLElement;
+    this.applyZoom(1.0, host.clientWidth / 2, host.clientHeight / 2);
+  }
+
+  private applyZoom(newZoom: number, pivotX: number, pivotY: number): void {
+    const clamped = Math.max(this.ZOOM_MIN, Math.min(this.ZOOM_MAX, newZoom));
+    // Houd het punt onder de cursor (pivot) op dezelfde scherm-positie
+    this.panX = pivotX - (pivotX - this.panX) * (clamped / this.zoom);
+    this.panY = pivotY - (pivotY - this.panY) * (clamped / this.zoom);
+    this.zoom = clamped;
   }
 
   onCanvasClick(): void {
@@ -223,8 +276,9 @@ export class StoryCanvas implements OnChanges {
 
     const svgEl  = (this.el.nativeElement as HTMLElement).querySelector('svg')!;
     const rect   = svgEl.getBoundingClientRect();
-    const cx     = event.clientX - rect.left - this.panX;
-    const cy     = event.clientY - rect.top  - this.panY;
+    // Cursor-positie omzetten naar wereld-coördinaten (corrigeer voor zoom)
+    const cx     = (event.clientX - rect.left - this.panX) / this.zoom;
+    const cy     = (event.clientY - rect.top  - this.panY) / this.zoom;
 
     // Huidige positie ophalen VOOR draggingNodeId wordt gezet
     // (anders leest getNodeX dragX=0 terug als initiële waarde)
@@ -240,8 +294,8 @@ export class StoryCanvas implements OnChanges {
 
     this.boundDragMove = (e: MouseEvent) => {
       const r  = svgEl.getBoundingClientRect();
-      const nx = e.clientX - r.left - this.panX - this.dragOffsetX;
-      const ny = e.clientY - r.top  - this.panY - this.dragOffsetY;
+      const nx = (e.clientX - r.left - this.panX) / this.zoom - this.dragOffsetX;
+      const ny = (e.clientY - r.top  - this.panY) / this.zoom - this.dragOffsetY;
       if (Math.abs(nx - this.dragX) > 2 || Math.abs(ny - this.dragY) > 2) this.didDragNode = true;
       this.dragX = nx;
       this.dragY = ny;

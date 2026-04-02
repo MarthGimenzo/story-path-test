@@ -26,10 +26,21 @@
           <feMergeNode in="SourceGraphic" />
         </feMerge>
       </filter>
+      <!-- Grid patroon (wereld-coördinaten, schaalt automatisch mee met zoom) -->
+      <pattern id="grid-minor" width="80" height="80" patternUnits="userSpaceOnUse">
+        <path d="M 80 0 L 0 0 0 80" fill="none" stroke="#111e2c" stroke-width="0.5"/>
+      </pattern>
+      <pattern id="grid-major" width="400" height="400" patternUnits="userSpaceOnUse">
+        <rect width="400" height="400" fill="url(#grid-minor)"/>
+        <path d="M 400 0 L 0 0 0 400" fill="none" stroke="#162030" stroke-width="1"/>
+      </pattern>
     </defs>
 
-    <!-- Alles binnen deze groep is versleepbaar -->
-    <g [attr.transform]="'translate(' + panX + ',' + panY + ')'">
+    <!-- Alles binnen deze groep is versleepbaar en zoombaar -->
+    <g [attr.transform]="'translate(' + panX + ',' + panY + ') scale(' + zoom + ')'">
+
+    <!-- Achtergrond grid (heel groot zodat het altijd het scherm vult) -->
+    <rect x="-20000" y="-20000" width="40000" height="40000" fill="url(#grid-major)"/>
 
     <!-- Verticale tijdlijn-banen -->
     @for (node of nodes; track node.id) {
@@ -200,6 +211,17 @@
   @if (nodes.length === 0) {
     <div class="canvas-empty">Kies minimaal één startpunt via Instellingen</div>
   }
+
+  <!-- ── Zoom controls ── -->
+  <div class="zoom-controls">
+    <button class="zoom-btn" (click)="zoomIn()" [disabled]="zoom >= ZOOM_MAX" title="Inzoomen (+)">
+      <i class="fa-solid fa-plus"></i>
+    </button>
+    <button class="zoom-label-btn" (click)="zoomReset()" title="Reset naar 100%">{{ zoomLabel }}</button>
+    <button class="zoom-btn" (click)="zoomOut()" [disabled]="zoom <= ZOOM_MIN" title="Uitzoomen (−)">
+      <i class="fa-solid fa-minus"></i>
+    </button>
+  </div>
 
   <!-- ── Edge gebeurtenis picker ── -->
   @if (edgePicker) {
