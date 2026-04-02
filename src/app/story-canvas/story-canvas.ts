@@ -12,9 +12,11 @@ export class StoryCanvas {
   @Input() edges: StoryEdge[] = [];
   @Input() characters: Character[] = [];
 
-  @Output() encounterAdded  = new EventEmitter<{ parentId: string; charId: string }>();
-  @Output() mergeRequested  = new EventEmitter<{ parentId: string; mergeWithId: string }>();
-  @Output() nodeRemoved     = new EventEmitter<string>();
+  @Output() encounterAdded   = new EventEmitter<{ parentId: string; charId: string }>();
+  @Output() mergeRequested   = new EventEmitter<{ parentId: string; mergeWithId: string }>();
+  @Output() nodeRemoved      = new EventEmitter<string>();
+  @Output() characterLeft    = new EventEmitter<{ fromNodeId: string; charId: string }>();
+  @Output() characterMoved   = new EventEmitter<{ fromNodeId: string; charId: string; toNodeId: string }>();
 
   // ── Layout constanten ──────────────────────────────────────────────────────
   readonly NODE_WIDTH    = 190;
@@ -24,14 +26,19 @@ export class StoryCanvas {
   readonly PADDING_BOTTOM = 55;
 
   readonly DOTS_PER_ROW  = 6;
-  readonly DOT_R         = 8;   // straal van karakter-dot
+  readonly DOT_R         = 8;   // straal bondgenoot-dot
+  readonly DOT_R_LEADER  = 10;  // straal aanvoerder-dot
   readonly DOT_GAP       = 5;
-  readonly DOT_AREA_TOP  = 50;  // Y waar dots beginnen (relatief aan node top)
+  readonly DOT_AREA_TOP  = 54;  // Y waar dots beginnen (relatief aan node top)
 
-  // ── Picker state ───────────────────────────────────────────────────────────
+  // ── '+' picker state ──────────────────────────────────────────────────────
   pickerParentId: string | null = null;
   availableChars: Character[]   = [];
   mergeableGroups: StoryNode[]  = [];
+
+  // ── Karakter-dot picker state ─────────────────────────────────────────────
+  charPicker: { nodeId: string; charId: string } | null = null;
+  charPickerMoveTargets: StoryNode[] = [];
 
   // ── SVG afmetingen ─────────────────────────────────────────────────────────
   get svgWidth(): number {
@@ -44,10 +51,32 @@ export class StoryCanvas {
     return Math.max(480, this.PADDING_BOTTOM + (maxRow + 2) * this.ROW_SPACING);
   }
 
-  // ── Node hoogte (dynamisch op basis van groepsgrootte) ─────────────────────
+  // ── Tekstwrap ──────────────────────────────────────────────────────────────
+  /** Splits tekst in regels die passen binnen de node breedte. */
+  getDescriptionLines(text: string): string[] {
+    const MAX_CHARS = 27; // ~(NODE_WIDTH - 20px padding) / 5.5px per karakter
+    const words = text.split(' ');
+    const lines: string[] = [];
+    let current = '';
+    for (const word of words) {
+      const candidate = current ? `${current} ${word}` : word;
+      if (candidate.length > MAX_CHARS && current) {
+        lines.push(current);
+        current = word;
+      } else {
+        current = candidate;
+      }
+    }
+    if (current) lines.push(current);
+    return lines;
+  }
+
+  // ── Node hoogte (dynamisch op basis van tekst + groepsgrootte) ─────────────
   getNodeHeight(node: StoryNode): number {
-    const rows = Math.ceil(node.characters.length / this.DOTS_PER_ROW);
-    return this.DOT_AREA_TOP + rows * (this.DOT_R * 2 + this.DOT_GAP) + 14;
+    const descLines = this.getDescriptionLines(node.description).length;
+    const dotRows   = Math.ceil(node.characters.length / this.DOTS_PER_ROW);
+    const DOT_STEP  = this.DOT_R * 2 + this.DOT_GAP;
+    return 30 + descLines * 14 + 10 + dotRows * DOT_STEP + 14;
   }
 
   // ── Positie berekeningen ───────────────────────────────────────────────────
@@ -93,6 +122,10 @@ export class StoryCanvas {
     return this.NODE_WIDTH / 2 - rowWidth / 2 + this.DOT_R + col * step;
   }
 
+  getDotR(index: number): number {
+    return index === 0 ? this.DOT_R_LEADER : this.DOT_R;
+  }
+
   getDotCy(index: number, total: number, node: StoryNode): number {
     const rowIndex  = Math.floor(index / this.DOTS_PER_ROW);
     const totalRows = Math.ceil(total / this.DOTS_PER_ROW);
@@ -107,13 +140,41 @@ export class StoryCanvas {
     const from = this.nodes.find(n => n.id === edge.from)!;
     const to   = this.nodes.find(n => n.id === edge.to)!;
 
+    if (edge.type === 'character-move') {
+      return this.getCharMovePath(from, to);
+    }
+
     const x1 = this.getNodeCenterX(from);
     const y1 = this.getNodeY(from);
     const x2 = this.getNodeCenterX(to);
     const y2 = this.getNodeY(to) + this.getNodeHeight(to) - 2;
-
     const midY = (y1 + y2) / 2;
     return `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`;
+  }
+
+  /** Gebogen boog tussen twee nodes op dezelfde rij — gaat omhoog tussen de kolommen. */
+  private getCharMovePath(from: StoryNode, to: StoryNode): string {
+    const x1 = this.getNodeCenterX(from);
+    const y1 = this.getNodeY(from);
+    const x2 = this.getNodeCenterX(to);
+    const y2 = this.getNodeY(to);
+    const arcTop = Math.min(y1, y2) - 70;
+    return `M ${x1} ${y1} C ${x1} ${arcTop}, ${x2} ${arcTop}, ${x2} ${y2}`;
+  }
+
+  getEdgeColor(edge: StoryEdge): string {
+    if (edge.type === 'character-move' && edge.charId) {
+      return this.getCharacter(edge.charId)?.color ?? '#aaaaaa';
+    }
+    return '#5a3a8a';
+  }
+
+  getEdgeDash(edge: StoryEdge): string {
+    return edge.type === 'character-move' ? '4,3' : '6,4';
+  }
+
+  getEdgeWidth(edge: StoryEdge): number {
+    return edge.type === 'character-move' ? 1.5 : 2;
   }
 
   // ── Leaf nodes = actieve groepen (geen uitgaande edges) ────────────────────
@@ -144,6 +205,36 @@ export class StoryCanvas {
     if (!this.pickerParentId) return;
     this.mergeRequested.emit({ parentId: this.pickerParentId, mergeWithId });
     this.pickerParentId = null;
+  }
+
+  // ── Karakter-dot interactie ───────────────────────────────────────────────
+  /** Dot is klikbaar als de groep meer dan 1 lid heeft en het geen start-node is. */
+  isDotInteractive(node: StoryNode): boolean {
+    return node.type !== 'start' && node.characters.length > 1;
+  }
+
+  openCharPicker(nodeId: string, charId: string, event: MouseEvent): void {
+    event.stopPropagation();
+    this.pickerParentId = null; // sluit '+' picker
+    this.charPicker = { nodeId, charId };
+    this.charPickerMoveTargets = this.leafNodes.filter(n => n.id !== nodeId);
+  }
+
+  confirmLeave(): void {
+    if (!this.charPicker) return;
+    this.characterLeft.emit({ fromNodeId: this.charPicker.nodeId, charId: this.charPicker.charId });
+    this.charPicker = null;
+  }
+
+  confirmMove(toNodeId: string): void {
+    if (!this.charPicker) return;
+    this.characterMoved.emit({ fromNodeId: this.charPicker.nodeId, charId: this.charPicker.charId, toNodeId });
+    this.charPicker = null;
+  }
+
+  closeAllPickers(): void {
+    this.pickerParentId = null;
+    this.charPicker = null;
   }
 
   // ── Kleur hulpfuncties ─────────────────────────────────────────────────────

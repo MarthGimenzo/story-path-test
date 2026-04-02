@@ -1,4 +1,4 @@
-<div class="canvas-wrap" (click)="pickerParentId = null">
+<div class="canvas-wrap" (click)="closeAllPickers()">
 
   <svg
     [attr.width]="svgWidth"
@@ -6,9 +6,15 @@
     class="story-svg"
   >
     <defs>
+      <!-- Paarse pijl voor verhaallijnen -->
       <marker id="arrow" markerWidth="10" markerHeight="7"
               refX="9" refY="3.5" orient="auto">
         <polygon points="0 0, 10 3.5, 0 7" fill="#7c5cbf" />
+      </marker>
+      <!-- Gekleurde pijl voor personage-verhuizingen -->
+      <marker id="arrow-move" markerWidth="10" markerHeight="7"
+              refX="9" refY="3.5" orient="auto" markerUnits="strokeWidth">
+        <polygon points="0 0, 10 3.5, 0 7" fill="context-stroke" />
       </marker>
       <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
         <feGaussianBlur stdDeviation="4" result="blur" />
@@ -46,14 +52,18 @@
     @for (edge of edges; track edge.id) {
       <path
         [attr.d]="getEdgePath(edge)"
-        fill="none" stroke="#5a3a8a" stroke-width="2"
-        stroke-dasharray="6,4" marker-end="url(#arrow)" opacity="0.85"
+        fill="none"
+        [attr.stroke]="getEdgeColor(edge)"
+        [attr.stroke-width]="getEdgeWidth(edge)"
+        [attr.stroke-dasharray]="getEdgeDash(edge)"
+        [attr.marker-end]="edge.type === 'character-move' ? 'url(#arrow-move)' : 'url(#arrow)'"
+        [attr.opacity]="edge.type === 'character-move' ? '1' : '0.85'"
       />
     }
 
     <!-- Nodes -->
     @for (node of nodes; track node.id) {
-      <g [attr.transform]="'translate(' + getNodeX(node) + ',' + getNodeY(node) + ')'">
+      <g class="node-group" [attr.transform]="'translate(' + getNodeX(node) + ',' + getNodeY(node) + ')'">
 
         <!-- Achtergrond -->
         <rect
@@ -78,28 +88,49 @@
           font-size="10" font-family="monospace" letter-spacing="0.5" font-weight="bold"
         >{{ node.label }}</text>
 
-        <!-- Beschrijving -->
-        <text [attr.x]="NODE_WIDTH / 2" y="38"
-          text-anchor="middle" fill="#7090a8"
-          font-size="11" font-family="'Segoe UI', Arial, sans-serif"
-        >{{ node.description }}</text>
+        <!-- Beschrijving (meerdere regels indien nodig) -->
+        @for (line of getDescriptionLines(node.description); track $index; let i = $index) {
+          <text
+            [attr.x]="NODE_WIDTH / 2"
+            [attr.y]="38 + i * 14"
+            text-anchor="middle" fill="#7090a8"
+            font-size="11" font-family="'Segoe UI', Arial, sans-serif"
+          >{{ line }}</text>
+        }
 
         <!-- Karakter-dots: volledige groep -->
         @for (charId of node.characters; track charId; let i = $index) {
-          <circle
-            [attr.cx]="getDotCx(i, node.characters.length)"
-            [attr.cy]="getDotCy(i, node.characters.length, node)"
-            [attr.r]="DOT_R"
-            [attr.fill]="getCharacter(charId)?.color ?? '#546e7a'"
-            opacity="0.95"
-          />
-          <text
-            [attr.x]="getDotCx(i, node.characters.length)"
-            [attr.y]="getDotCy(i, node.characters.length, node) + 4"
-            text-anchor="middle" fill="#000"
-            font-size="9" font-weight="bold" font-family="Arial, sans-serif"
-          >{{ (getCharacter(charId)?.name ?? '')[0] }}</text>
-          <title>{{ getCharacter(charId)?.name }}</title>
+          <g
+            [class.dot-interactive]="isDotInteractive(node)"
+            (click)="isDotInteractive(node) ? openCharPicker(node.id, charId, $event) : null"
+          >
+            <!-- Aanvoerder-ring (index 0) -->
+            @if (i === 0) {
+              <circle
+                [attr.cx]="getDotCx(i, node.characters.length)"
+                [attr.cy]="getDotCy(i, node.characters.length, node)"
+                [attr.r]="DOT_R_LEADER + 4"
+                fill="none"
+                [attr.stroke]="getCharacter(charId)?.color ?? '#4fc3f7'"
+                stroke-width="1.5"
+                opacity="0.4"
+              />
+            }
+            <circle
+              [attr.cx]="getDotCx(i, node.characters.length)"
+              [attr.cy]="getDotCy(i, node.characters.length, node)"
+              [attr.r]="getDotR(i)"
+              [attr.fill]="getCharacter(charId)?.color ?? '#546e7a'"
+              opacity="0.95"
+            />
+            <text
+              [attr.x]="getDotCx(i, node.characters.length)"
+              [attr.y]="getDotCy(i, node.characters.length, node) + 4"
+              text-anchor="middle" fill="#000"
+              font-size="9" font-weight="bold" font-family="Arial, sans-serif"
+            >{{ (getCharacter(charId)?.name ?? '')[0] }}</text>
+            <title>{{ getCharacter(charId)?.name }}</title>
+          </g>
         }
 
         <!-- '+' knop -->
@@ -128,7 +159,58 @@
 
   </svg>
 
-  <!-- ── Picker overlay ── -->
+  <!-- ── Karakter-dot picker (vertrek / overstap) ── -->
+  @if (charPicker) {
+    <div class="picker-overlay" (click)="charPicker = null">
+      <div class="picker-panel" (click)="$event.stopPropagation()">
+
+        <div class="picker-header">
+          <span class="picker-title">
+            <span class="char-dot-inline"
+              [style.background]="getCharacter(charPicker.charId)?.color">
+            </span>
+            {{ getCharacter(charPicker.charId)?.name }}
+          </span>
+          <button class="picker-close" (click)="charPicker = null">✕</button>
+        </div>
+
+        <!-- Verlaat groep -->
+        <div class="picker-section">
+          <button class="leave-btn" (click)="confirmLeave()">
+            <span class="leave-icon">↗</span>
+            Verlaat de groep
+          </button>
+          <p class="leave-note">Wordt weer beschikbaar voor een nieuwe ontmoeting.</p>
+        </div>
+
+        <!-- Overstap naar andere groep -->
+        @if (charPickerMoveTargets.length > 0) {
+          <div class="picker-section">
+            <span class="picker-section-label">Overstap naar groep</span>
+            <div class="picker-list">
+              @for (group of charPickerMoveTargets; track group.id) {
+                <button class="group-chip" (click)="confirmMove(group.id)">
+                  <div class="group-dots">
+                    @for (cId of group.characters; track cId) {
+                      <span class="group-dot"
+                        [style.background]="getCharacter(cId)?.color"
+                        [title]="getCharacter(cId)?.name">
+                        {{ (getCharacter(cId)?.name ?? '')[0] }}
+                      </span>
+                    }
+                  </div>
+                  <span class="group-label">{{ group.label }} · {{ group.characters.length }} pers.</span>
+                </button>
+              }
+            </div>
+          </div>
+        }
+
+      </div>
+    </div>
+  }
+
+  <!-- ── '+' Picker overlay ── -->
   @if (pickerParentId) {
     <div class="picker-overlay" (click)="pickerParentId = null">
       <div class="picker-panel" (click)="$event.stopPropagation()">

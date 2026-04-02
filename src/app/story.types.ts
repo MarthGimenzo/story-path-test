@@ -18,4 +18,6 @@ export interface StoryEdge {
   id: string;
   from: string;
   to: string;
+  type?: 'story' | 'character-move';
+  charId?: string;  // alleen bij type='character-move'
 }

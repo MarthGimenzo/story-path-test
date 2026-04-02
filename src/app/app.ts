@@ -38,7 +38,13 @@ export class App {
 
   toggleStarter(charId: string): void {
     const next = new Set(this.selectedStarters);
-    next.has(charId) ? next.delete(charId) : next.add(charId);
+    if (next.has(charId)) {
+      next.delete(charId);
+      // Ruim alle afstammende nodes op van dit startpunt
+      this.onNodeRemoved(`start-${charId}`);
+    } else {
+      next.add(charId);
+    }
     this.selectedStarters = next;
   }
 
@@ -51,7 +57,7 @@ export class App {
           id: `start-${char.id}`,
           characters: [char.id],
           label: char.name,
-          description: 'Startpunt',
+          description: 'Solo · 0 bondgenoten',
           col: col++,
           row: 0,
           type: 'start',
@@ -69,16 +75,33 @@ export class App {
     return [...this.extraEdges];
   }
 
+  // ── Vertelende beschrijvingen ─────────────────────────────────────────────
+
+  /** "Jouke", "Jouke en Rik", "Jouke, Rik en Thijs" */
+  private party(charIds: string[]): string {
+    const names = charIds.map(id => this.characters.find(c => c.id === id)?.name ?? id);
+    if (names.length === 1) return names[0];
+    if (names.length === 2) return `${names[0]} en ${names[1]}`;
+    return `${names.slice(0, -1).join(', ')} en ${names.at(-1)}`;
+  }
+
+  /** "ontmoet" (enkelvoud) of "ontmoeten" (meervoud) */
+  private meetVerb(count: number): string {
+    return count === 1 ? 'ontmoet' : 'ontmoeten';
+  }
+
   /** Eén nieuw karakter ontmoet de groep → volledige groep + nieuw karakter. */
   onEncounterAdded(event: { parentId: string; charId: string }): void {
     const parent = this.nodes.find(n => n.id === event.parentId)!;
     const char   = this.characters.find(c => c.id === event.charId)!;
 
+    const newChars = [...parent.characters, char.id];
+
     const newNode: StoryNode = {
       id: `enc-${Date.now()}`,
-      characters: [...parent.characters, char.id],
+      characters: newChars,
       label: 'Ontmoeting',
-      description: `${char.name} sluit aan`,
+      description: `${this.party(parent.characters)} ${this.meetVerb(parent.characters.length)} ${char.name}`,
       col: parent.col,
       row: parent.row + 1,
       type: 'encounter',
@@ -101,6 +124,67 @@ export class App {
     this.extraEdges = this.extraEdges.filter(e => !toRemove.has(e.from) && !toRemove.has(e.to));
   }
 
+  /** Karakter verlaat groep → groep gaat verder zonder hem/haar. */
+  onCharacterLeft({ fromNodeId, charId }: { fromNodeId: string; charId: string }): void {
+    const fromNode  = this.nodes.find(n => n.id === fromNodeId)!;
+    const remaining = fromNode.characters.filter(c => c !== charId);
+    const char      = this.characters.find(c => c.id === charId)!;
+    const newLeader = this.characters.find(c => c.id === remaining[0])!;
+
+    const newNode: StoryNode = {
+      id: `leave-${Date.now()}`,
+      characters: remaining,
+      label: 'Vertrek',
+      description: `${char.name} verlaat ${this.party(remaining)}`,
+      col: fromNode.col,
+      row: fromNode.row + 1,
+      type: 'event',
+    };
+
+    this.extraNodes = [...this.extraNodes, newNode];
+    this.extraEdges = [...this.extraEdges, { id: `e-${newNode.id}`, from: fromNodeId, to: newNode.id }];
+  }
+
+  /** Karakter stapt over naar een andere groep. */
+  onCharacterMoved({ fromNodeId, charId, toNodeId }: { fromNodeId: string; charId: string; toNodeId: string }): void {
+    const fromNode  = this.nodes.find(n => n.id === fromNodeId)!;
+    const toNode    = this.nodes.find(n => n.id === toNodeId)!;
+    const char      = this.characters.find(c => c.id === charId)!;
+    const remaining = fromNode.characters.filter(c => c !== charId);
+    const newChars  = [...toNode.characters, charId];
+    const newRow    = Math.max(fromNode.row, toNode.row) + 1;
+    const fromLeader = this.characters.find(c => c.id === remaining[0])!;
+    const toLeader   = this.characters.find(c => c.id === toNode.characters[0])!;
+
+    const departNode: StoryNode = {
+      id: `depart-${Date.now()}`,
+      characters: remaining,
+      label: 'Vertrek',
+      description: `${char.name} verlaat ${this.party(remaining)}`,
+      col: fromNode.col,
+      row: newRow,
+      type: 'event',
+    };
+
+    const arriveNode: StoryNode = {
+      id: `arrive-${Date.now()}`,
+      characters: newChars,
+      label: 'Aankomst',
+      description: `${this.party(toNode.characters)} ${this.meetVerb(toNode.characters.length)} ${char.name}`,
+      col: toNode.col,
+      row: newRow,
+      type: 'encounter',
+    };
+
+    this.extraNodes = [...this.extraNodes, departNode, arriveNode];
+    this.extraEdges = [
+      ...this.extraEdges,
+      { id: `e-${departNode.id}`,  from: fromNodeId,    to: departNode.id },
+      { id: `e-${arriveNode.id}`,  from: toNodeId,      to: arriveNode.id },
+      { id: `e-move-${Date.now()}`, from: departNode.id, to: arriveNode.id, type: 'character-move', charId },
+    ];
+  }
+
   /** Twee groepen smelten samen → gecombineerde groep. */
   onMergeRequested(event: { parentId: string; mergeWithId: string }): void {
     const a = this.nodes.find(n => n.id === event.parentId)!;
@@ -110,11 +194,14 @@ export class App {
     const mergedCol   = (a.col + b.col) / 2;
     const mergedRow   = Math.max(a.row, b.row) + 1;
 
+    const leaderA = this.characters.find(c => c.id === a.characters[0])!;
+    const leaderB = this.characters.find(c => c.id === b.characters[0])!;
+
     const newNode: StoryNode = {
       id: `merge-${Date.now()}`,
       characters: mergedChars,
       label: 'Samenvoeging',
-      description: 'Groepen komen samen',
+      description: `${this.party(a.characters)} sluiten zich aaneen met ${this.party(b.characters)}`,
       col: mergedCol,
       row: mergedRow,
       type: 'encounter',

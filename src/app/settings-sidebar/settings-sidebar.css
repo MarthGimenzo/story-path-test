@@ -129,3 +129,57 @@
 .char-name {
   color: #a8c0d8;
 }
+
+/* ── Bevestigingsprompt ── */
+.confirm-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: color-mix(in srgb, var(--char-color, #ef5350) 10%, #0d1f30);
+  border: 1px solid var(--char-color, #ef5350);
+  border-radius: 20px;
+  padding: 5px 8px 5px 10px;
+  animation: confirmAppear 0.15s ease;
+}
+
+@keyframes confirmAppear {
+  from { opacity: 0; transform: scaleY(0.8); }
+  to   { opacity: 1; transform: scaleY(1); }
+}
+
+.confirm-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.confirm-text {
+  flex: 1;
+  font-size: 12px;
+  color: var(--char-color, #ef5350);
+}
+
+.confirm-yes,
+.confirm-no {
+  border: none;
+  border-radius: 12px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.15s;
+}
+
+.confirm-yes {
+  background: #3a0f0f;
+  color: #ef5350;
+}
+.confirm-yes:hover { background: #5a1515; }
+
+.confirm-no {
+  background: #0d1f30;
+  color: #4a6a8a;
+}
+.confirm-no:hover { background: #1a3050; }

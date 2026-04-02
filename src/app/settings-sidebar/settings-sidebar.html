@@ -16,15 +16,27 @@
     </p>
     <div class="sidebar-picker">
       @for (char of characters; track char.id) {
-        <button
-          class="char-chip"
-          [class.active]="selectedStarters.has(char.id)"
-          [style.--char-color]="char.color"
-          (click)="toggled.emit(char.id)"
-        >
-          <span class="char-dot" [style.background]="char.color"></span>
-          <span class="char-name">{{ char.name }}</span>
-        </button>
+
+        @if (pendingRemovalId === char.id) {
+          <!-- Bevestigingsprompt -->
+          <div class="confirm-row" [style.--char-color]="char.color">
+            <span class="confirm-dot" [style.background]="char.color"></span>
+            <span class="confirm-text">{{ char.name }} verwijderen?</span>
+            <button class="confirm-yes" (click)="confirmRemoval()">Ja</button>
+            <button class="confirm-no"  (click)="cancelRemoval()">Nee</button>
+          </div>
+        } @else {
+          <button
+            class="char-chip"
+            [class.active]="selectedStarters.has(char.id)"
+            [style.--char-color]="char.color"
+            (click)="handleChipClick(char.id)"
+          >
+            <span class="char-dot" [style.background]="char.color"></span>
+            <span class="char-name">{{ char.name }}</span>
+          </button>
+        }
+
       }
     </div>
   </div>
