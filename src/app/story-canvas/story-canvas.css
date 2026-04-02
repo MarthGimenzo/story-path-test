@@ -445,3 +445,46 @@
   color: #9a7248;
   letter-spacing: 0.5px;
 }
+
+/* ── Node menu picker (wider) ── */
+.picker-panel--wide {
+  width: 340px;
+}
+
+/* ── Picker panel animate in ── */
+.picker-panel {
+  animation: panelIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: top center;
+}
+
+@keyframes panelIn {
+  from { opacity: 0; transform: translateY(-10px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Danger section ── */
+.picker-section--danger {
+  border-top: 1px solid #3a1008;
+  background: rgba(30, 8, 4, 0.4);
+}
+
+.delete-node-btn {
+  width: 100%;
+  background: none;
+  border: 1px solid #4a1808;
+  border-radius: 8px;
+  color: #c05030;
+  font-size: 13px;
+  font-family: 'Lora', Georgia, serif;
+  padding: 9px 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.delete-node-btn:hover {
+  background: rgba(60, 15, 8, 0.5);
+  border-color: #e05a30;
+  color: #e87050;
+}

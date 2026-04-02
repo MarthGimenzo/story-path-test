@@ -54,3 +54,17 @@ body { margin: 0; }
   border-color: #e05a30;
   color: #e05a30;
 }
+
+/* Menu (node top-right corner) */
+.svg-icon-btn--menu {
+  background: rgba(20, 12, 4, 0.7);
+  border-color: #4a3018;
+  color: #7a5a38;
+  border-radius: 5px;
+  font-size: 9px;
+}
+.svg-icon-btn--menu:hover {
+  background: rgba(50, 30, 10, 0.95);
+  border-color: #e8a840;
+  color: #e8c870;
+}

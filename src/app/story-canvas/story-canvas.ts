@@ -319,10 +319,10 @@ export class StoryCanvas implements OnChanges, AfterViewInit, OnDestroy {
     document.addEventListener('mouseup',   this.boundDragEnd);
   }
 
-  // ── '+' picker state ──────────────────────────────────────────────────────
-  pickerParentId: string | null = null;
-  availableChars: Character[]   = [];
-  mergeableGroups: StoryNode[]  = [];
+  // ── Node menu state ───────────────────────────────────────────────────────
+  nodeMenuId: string | null   = null;
+  availableChars: Character[] = [];
+  mergeableGroups: StoryNode[] = [];
 
   // ── Karakter-dot picker state ─────────────────────────────────────────────
   charPicker: { nodeId: string; charId: string } | null = null;
@@ -579,12 +579,12 @@ export class StoryCanvas implements OnChanges, AfterViewInit, OnDestroy {
   }
 
 
-  // ── Picker ─────────────────────────────────────────────────────────────────
-  openPicker(nodeId: string, event: MouseEvent): void {
+  // ── Node menu ──────────────────────────────────────────────────────────────
+  openNodeMenu(nodeId: string, event: MouseEvent): void {
     event.stopPropagation();
     this.charPicker          = null;
     this.edgePicker          = null;
-    this.pickerParentId      = nodeId;
+    this.nodeMenuId          = nodeId;
     this.nodePickerEventType = 'event';
 
     const activeChars = new Set<string>();
@@ -593,26 +593,36 @@ export class StoryCanvas implements OnChanges, AfterViewInit, OnDestroy {
     this.mergeableGroups = this.leafNodes.filter(n => n.id !== nodeId);
   }
 
+  get nodeMenuNode(): StoryNode | undefined {
+    return this.nodes.find(n => n.id === this.nodeMenuId);
+  }
+
+  deleteNodeFromMenu(): void {
+    if (!this.nodeMenuId) return;
+    this.nodeRemoved.emit(this.nodeMenuId);
+    this.nodeMenuId = null;
+  }
+
   confirmNodeEvent(nameInput: HTMLInputElement): void {
-    if (!this.pickerParentId) return;
+    if (!this.nodeMenuId) return;
     this.eventAppended.emit({
-      nodeId: this.pickerParentId,
+      nodeId: this.nodeMenuId,
       name:   nameInput.value.trim(),
       type:   this.nodePickerEventType,
     });
-    this.pickerParentId = null;
+    this.nodeMenuId = null;
   }
 
   selectCharacter(charId: string): void {
-    if (!this.pickerParentId) return;
-    this.encounterAdded.emit({ parentId: this.pickerParentId, charId });
-    this.pickerParentId = null;
+    if (!this.nodeMenuId) return;
+    this.encounterAdded.emit({ parentId: this.nodeMenuId, charId });
+    this.nodeMenuId = null;
   }
 
   selectMerge(mergeWithId: string): void {
-    if (!this.pickerParentId) return;
-    this.mergeRequested.emit({ parentId: this.pickerParentId, mergeWithId });
-    this.pickerParentId = null;
+    if (!this.nodeMenuId) return;
+    this.mergeRequested.emit({ parentId: this.nodeMenuId, mergeWithId });
+    this.nodeMenuId = null;
   }
 
   // ── Karakter-dot interactie ───────────────────────────────────────────────
@@ -624,7 +634,7 @@ export class StoryCanvas implements OnChanges, AfterViewInit, OnDestroy {
 
   openCharPicker(nodeId: string, charId: string, event: MouseEvent): void {
     event.stopPropagation();
-    this.pickerParentId = null; // sluit '+' picker
+    this.nodeMenuId = null; // sluit node menu
     this.charPicker = { nodeId, charId };
     this.charPickerMoveTargets = this.leafNodes.filter(n => n.id !== nodeId);
   }
@@ -656,7 +666,7 @@ export class StoryCanvas implements OnChanges, AfterViewInit, OnDestroy {
 
   openEdgePicker(edgeId: string, event: MouseEvent): void {
     event.stopPropagation();
-    this.pickerParentId = null;
+    this.nodeMenuId = null;
     this.charPicker = null;
     this.edgePicker = edgeId;
     this.edgePickerName = '';
@@ -675,7 +685,7 @@ export class StoryCanvas implements OnChanges, AfterViewInit, OnDestroy {
   }
 
   closeAllPickers(): void {
-    this.pickerParentId = null;
+    this.nodeMenuId = null;
     this.charPicker = null;
     this.edgePicker = null;
   }

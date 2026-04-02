@@ -323,32 +323,17 @@
 
         } <!-- einde @else normale layout -->
 
-        <!-- Volgende stap toevoegen (onder node) — alleen op leaf nodes -->
-        @if (isLeafNode(node)) {
+        <!-- Universeel menu-knopje -->
+        @if (isLeafNode(node) || node.type !== 'start') {
           <foreignObject
-            [attr.x]="NODE_WIDTH / 2 - 13"
-            [attr.y]="getNodeHeight(node) + 3"
-            width="26" height="26"
+            [attr.x]="NODE_WIDTH - 24"
+            y="5"
+            width="18" height="18"
             style="overflow:visible; cursor:pointer"
-            (click)="openPicker(node.id, $event)"
+            (click)="openNodeMenu(node.id, $event)"
           >
-            <div class="svg-icon-btn svg-icon-btn--add">
-              <i class="fa-solid fa-user-plus"></i>
-            </div>
-          </foreignObject>
-        }
-
-        <!-- Verwijderen (rechtsboven in node, alleen niet-start) -->
-        @if (node.type !== 'start') {
-          <foreignObject
-            [attr.x]="NODE_WIDTH - 22"
-            y="4"
-            width="20" height="20"
-            style="overflow:visible; cursor:pointer"
-            (click)="nodeRemoved.emit(node.id); $event.stopPropagation()"
-          >
-            <div class="svg-icon-btn svg-icon-btn--delete">
-              <i class="fa-solid fa-trash-can"></i>
+            <div class="svg-icon-btn svg-icon-btn--menu">
+              <i class="fa-solid fa-ellipsis"></i>
             </div>
           </foreignObject>
         }
@@ -361,7 +346,7 @@
   </svg>
 
   @if (nodes.length === 0) {
-    <div class="canvas-empty">Kies minimaal één startpunt via Instellingen</div>
+    <div class="canvas-empty">Voeg een verhaallijn toe via het Verhaallijnen-menu</div>
   }
 
   <!-- ── Zoom controls ── -->
@@ -474,87 +459,100 @@
     </div>
   }
 
-  <!-- ── '+' Picker overlay ── -->
-  @if (pickerParentId) {
-    <div class="picker-overlay" (click)="pickerParentId = null">
-      <div class="picker-panel" (click)="$event.stopPropagation()">
+  <!-- ── Node menu overlay ── -->
+  @if (nodeMenuId) {
+    <div class="picker-overlay" (click)="nodeMenuId = null">
+      <div class="picker-panel picker-panel--wide" (click)="$event.stopPropagation()">
 
         <div class="picker-header">
-          <span class="picker-title">Volgende stap</span>
-          <button class="picker-close" (click)="pickerParentId = null">
+          <span class="picker-title">
+            <i class="fa-solid fa-ellipsis"></i> Acties
+          </span>
+          <button class="picker-close" (click)="nodeMenuId = null">
             <i class="fa-solid fa-xmark"></i>
           </button>
         </div>
 
-        <!-- Gebeurtenis (dungeon, twist, etc.) -->
-        <div class="picker-section">
-          <span class="picker-section-label">
-            <i class="fa-solid fa-wand-magic-sparkles"></i> Gebeurtenis
-          </span>
-          <div class="event-type-row">
-            @for (opt of eventTypeOptions; track opt.value) {
-              <button class="event-type-btn"
-                [class.selected]="nodePickerEventType === opt.value"
-                (click)="nodePickerEventType = opt.value">
-                <i class="fa-solid" [class]="opt.icon"></i> {{ opt.label }}
-              </button>
-            }
-          </div>
-          <input #nodeEventNameInput class="event-name-input" style="margin-top:8px"
-            [placeholder]="nodePickerEventType === 'dungeon' ? 'bijv. Het Vergeten Fort' : 'bijv. Verrader ontmaskerd'"
-            (keydown.enter)="confirmNodeEvent(nodeEventNameInput)"
-          />
-          <button class="confirm-event-btn" style="margin-top:6px"
-            (click)="confirmNodeEvent(nodeEventNameInput)">
-            <i class="fa-solid fa-circle-plus"></i> Toevoegen
-          </button>
-        </div>
-
-        <!-- Ontmoeting: los karakter -->
-        @if (availableChars.length > 0) {
+        <!-- Volgende stap (alleen leaf nodes) -->
+        @if (nodeMenuNode && isLeafNode(nodeMenuNode)) {
           <div class="picker-section">
             <span class="picker-section-label">
-              <i class="fa-solid fa-user-plus"></i> Karakter ontmoeten
+              <i class="fa-solid fa-wand-magic-sparkles"></i> Volgende stap
             </span>
-            <div class="picker-list">
-              @for (char of availableChars; track char.id) {
-                <button class="char-chip" [style.--char-color]="char.color"
-                        (click)="selectCharacter(char.id)">
-                  <span class="char-dot" [style.background]="char.color"></span>
-                  <span class="char-name">{{ char.name }}</span>
+            <div class="event-type-row">
+              @for (opt of eventTypeOptions; track opt.value) {
+                <button class="event-type-btn"
+                  [class.selected]="nodePickerEventType === opt.value"
+                  (click)="nodePickerEventType = opt.value">
+                  <i class="fa-solid" [class]="opt.icon"></i> {{ opt.label }}
                 </button>
               }
             </div>
+            <input #nodeEventNameInput class="event-name-input" style="margin-top:8px"
+              [placeholder]="nodePickerEventType === 'dungeon' ? 'bijv. Het Vergeten Fort' : 'bijv. Verrader ontmaskerd'"
+              (keydown.enter)="confirmNodeEvent(nodeEventNameInput)"
+            />
+            <button class="confirm-event-btn" style="margin-top:6px"
+              (click)="confirmNodeEvent(nodeEventNameInput)">
+              <i class="fa-solid fa-circle-plus"></i> Toevoegen
+            </button>
           </div>
-        }
 
-        <!-- Samenvoegen: andere actieve groep -->
-        @if (mergeableGroups.length > 0) {
-          <div class="picker-section">
-            <span class="picker-section-label">
-              <i class="fa-solid fa-people-group"></i> Groep samenvoegen met
-            </span>
-            <div class="picker-list">
-              @for (group of mergeableGroups; track group.id) {
-                <button class="group-chip" (click)="selectMerge(group.id)">
-                  <div class="group-dots">
-                    @for (charId of group.characters; track charId) {
-                      <span class="group-dot"
-                            [style.background]="getCharacter(charId)?.color"
-                            [title]="getCharacter(charId)?.name">
-                        {{ (getCharacter(charId)?.name ?? '')[0] }}
-                      </span>
-                    }
-                  </div>
-                  <span class="group-label">{{ group.label }}</span>
-                </button>
-              }
+          <!-- Ontmoeting: los karakter -->
+          @if (availableChars.length > 0) {
+            <div class="picker-section">
+              <span class="picker-section-label">
+                <i class="fa-solid fa-user-plus"></i> Karakter ontmoeten
+              </span>
+              <div class="picker-list">
+                @for (char of availableChars; track char.id) {
+                  <button class="char-chip" [style.--char-color]="char.color"
+                          (click)="selectCharacter(char.id)">
+                    <span class="char-dot" [style.background]="char.color"></span>
+                    <span class="char-name">{{ char.name }}</span>
+                  </button>
+                }
+              </div>
             </div>
-          </div>
+          }
+
+          <!-- Samenvoegen: andere actieve groep -->
+          @if (mergeableGroups.length > 0) {
+            <div class="picker-section">
+              <span class="picker-section-label">
+                <i class="fa-solid fa-people-group"></i> Groep samenvoegen met
+              </span>
+              <div class="picker-list">
+                @for (group of mergeableGroups; track group.id) {
+                  <button class="group-chip" (click)="selectMerge(group.id)">
+                    <div class="group-dots">
+                      @for (charId of group.characters; track charId) {
+                        <span class="group-dot"
+                              [style.background]="getCharacter(charId)?.color"
+                              [title]="getCharacter(charId)?.name">
+                          {{ (getCharacter(charId)?.name ?? '')[0] }}
+                        </span>
+                      }
+                    </div>
+                    <span class="group-label">{{ group.label }}</span>
+                  </button>
+                }
+              </div>
+            </div>
+          }
+
+          @if (availableChars.length === 0 && mergeableGroups.length === 0) {
+            <p class="picker-empty">Geen beschikbare karakters of groepen meer.</p>
+          }
         }
 
-        @if (availableChars.length === 0 && mergeableGroups.length === 0) {
-          <p class="picker-empty">Geen beschikbare karakters of groepen meer.</p>
+        <!-- Verwijderen (alleen niet-start nodes) -->
+        @if (nodeMenuNode?.type !== 'start') {
+          <div class="picker-section picker-section--danger">
+            <button class="delete-node-btn" (click)="deleteNodeFromMenu()">
+              <i class="fa-solid fa-trash-can"></i> Node verwijderen
+            </button>
+          </div>
         }
 
       </div>
