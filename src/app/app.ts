@@ -1,18 +1,163 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { SettingsSidebar } from './settings-sidebar/settings-sidebar';
 import { StoryCanvas } from './story-canvas/story-canvas';
 import { Character, StoryEdge, StoryNode } from './story.types';
+
+interface Snapshot {
+  starters: string[];
+  nodes: StoryNode[];
+  edges: StoryEdge[];
+}
 
 @Component({
   selector: 'app-root',
   templateUrl: './app.html',
   styleUrl: './app.css',
   standalone: true,
-  imports: [SettingsSidebar, StoryCanvas],
+  imports: [SettingsSidebar, StoryCanvas, FormsModule],
 })
-export class App {
+export class App implements OnInit {
   settingsOpen = false;
   selectedStarters = new Set<string>(['jouke', 'thijs', 'ilva', 'douwe']);
+
+  // ── Undo / Redo ───────────────────────────────────────────────────────────
+  private history: Snapshot[] = [];
+  private future:  Snapshot[] = [];
+  private readonly MAX_HISTORY = 20;
+
+  get canUndo(): boolean { return this.history.length > 0; }
+  get canRedo(): boolean { return this.future.length > 0; }
+
+  private snapshot(): void {
+    this.history = [
+      ...this.history.slice(-(this.MAX_HISTORY - 1)),
+      { starters: [...this.selectedStarters], nodes: [...this.extraNodes], edges: [...this.extraEdges] },
+    ];
+    this.future = []; // nieuwe actie wist de redo-stack
+  }
+
+  undo(): void {
+    const prev = this.history.pop();
+    if (!prev) return;
+    this.future = [
+      ...this.future.slice(-(this.MAX_HISTORY - 1)),
+      { starters: [...this.selectedStarters], nodes: [...this.extraNodes], edges: [...this.extraEdges] },
+    ];
+    this.selectedStarters = new Set(prev.starters);
+    this.extraNodes = prev.nodes;
+    this.extraEdges = prev.edges;
+  }
+
+  redo(): void {
+    const next = this.future.pop();
+    if (!next) return;
+    this.history = [
+      ...this.history.slice(-(this.MAX_HISTORY - 1)),
+      { starters: [...this.selectedStarters], nodes: [...this.extraNodes], edges: [...this.extraEdges] },
+    ];
+    this.selectedStarters = new Set(next.starters);
+    this.extraNodes = next.nodes;
+    this.extraEdges = next.edges;
+  }
+
+  // ── Projectbeheer (localStorage) ─────────────────────────────────────────
+  private readonly PROJECTS_KEY = 'story-path-projects';
+  private readonly CURRENT_KEY  = 'story-path-current';
+
+  currentProject = 'Mijn verhaal';
+  projectsOpen   = false;
+  projectList: string[] = [];
+  saveLabel = 'Opslaan';
+  private saveTimer: ReturnType<typeof setTimeout> | null = null;
+
+  private getAllProjects(): Record<string, Snapshot> {
+    try { return JSON.parse(localStorage.getItem(this.PROJECTS_KEY) ?? '{}'); }
+    catch { return {}; }
+  }
+
+  private refreshProjectList(): void {
+    this.projectList = Object.keys(this.getAllProjects());
+  }
+
+  ngOnInit(): void {
+    // Migreer oud enkelvoudig opslagformaat
+    const legacy = localStorage.getItem('story-path-save');
+    if (legacy) {
+      try {
+        const d = JSON.parse(legacy) as Snapshot;
+        if (Array.isArray(d.starters)) {
+          const all = this.getAllProjects();
+          all['Mijn verhaal'] = d;
+          localStorage.setItem(this.PROJECTS_KEY, JSON.stringify(all));
+          localStorage.removeItem('story-path-save');
+        }
+      } catch {}
+    }
+
+    const all  = this.getAllProjects();
+    const last = localStorage.getItem(this.CURRENT_KEY);
+    const name = (last && all[last]) ? last : Object.keys(all)[0];
+    if (name && all[name]) {
+      this.currentProject = name;
+      const snap = all[name];
+      this.selectedStarters = new Set(snap.starters ?? []);
+      this.extraNodes = snap.nodes ?? [];
+      this.extraEdges = snap.edges ?? [];
+    }
+    this.refreshProjectList();
+  }
+
+  save(): void {
+    const all = this.getAllProjects();
+    all[this.currentProject] = {
+      starters: [...this.selectedStarters],
+      nodes: this.extraNodes,
+      edges: this.extraEdges,
+    };
+    localStorage.setItem(this.PROJECTS_KEY, JSON.stringify(all));
+    localStorage.setItem(this.CURRENT_KEY, this.currentProject);
+    this.refreshProjectList();
+    this.saveLabel = 'Opgeslagen!';
+    if (this.saveTimer) clearTimeout(this.saveTimer);
+    this.saveTimer = setTimeout(() => this.saveLabel = 'Opslaan', 2000);
+  }
+
+  loadProject(name: string): void {
+    const snap = this.getAllProjects()[name];
+    if (!snap) return;
+    this.currentProject = name;
+    this.selectedStarters = new Set(snap.starters ?? []);
+    this.extraNodes = snap.nodes ?? [];
+    this.extraEdges = snap.edges ?? [];
+    this.history = [];
+    this.future  = [];
+    localStorage.setItem(this.CURRENT_KEY, name);
+    this.projectsOpen = false;
+  }
+
+  deleteProject(name: string, event: MouseEvent): void {
+    event.stopPropagation();
+    const all = this.getAllProjects();
+    delete all[name];
+    localStorage.setItem(this.PROJECTS_KEY, JSON.stringify(all));
+    this.refreshProjectList();
+    if (this.currentProject === name) {
+      const remaining = Object.keys(all);
+      if (remaining.length > 0) this.loadProject(remaining[0]);
+      else this.newProject();
+    }
+  }
+
+  newProject(): void {
+    this.currentProject = 'Nieuw verhaal';
+    this.selectedStarters = new Set(['jouke', 'thijs', 'ilva', 'douwe']);
+    this.extraNodes = [];
+    this.extraEdges = [];
+    this.history = [];
+    this.future  = [];
+    this.projectsOpen = false;
+  }
 
   readonly characters: Character[] = [
     { id: 'jouke',    name: 'Jouke',    color: '#4fc3f7' },
@@ -37,6 +182,7 @@ export class App {
   extraEdges: StoryEdge[] = [];
 
   toggleStarter(charId: string): void {
+    this.snapshot();
     const next = new Set(this.selectedStarters);
     if (next.has(charId)) {
       next.delete(charId);
@@ -92,6 +238,7 @@ export class App {
 
   /** Eén nieuw karakter ontmoet de groep → volledige groep + nieuw karakter. */
   onEncounterAdded(event: { parentId: string; charId: string }): void {
+    this.snapshot();
     const parent = this.nodes.find(n => n.id === event.parentId)!;
     const char   = this.characters.find(c => c.id === event.charId)!;
 
@@ -113,6 +260,7 @@ export class App {
 
   /** Verwijder een node + alle opvolgers (cascade). */
   onNodeRemoved(nodeId: string): void {
+    this.snapshot();
     const toRemove = new Set<string>();
     const queue = [nodeId];
     while (queue.length) {
@@ -126,6 +274,7 @@ export class App {
 
   /** Voeg een gebeurtenis-node toe als volgende stap na een leaf node. */
   onEventAppended(event: { nodeId: string; name: string; type: 'dungeon' | 'event' | 'split' }): void {
+    this.snapshot();
     const node = this.nodes.find(n => n.id === event.nodeId)!;
     const insertRow = node.row + 1;
 
@@ -136,13 +285,13 @@ export class App {
     const defaultLabels: Record<string, string> = {
       dungeon: 'Dungeon', event: 'Verhaaltwist', split: 'Gebeurtenis',
     };
-    const label = event.name || defaultLabels[event.type];
+    const label = defaultLabels[event.type];
 
     const eventNode: StoryNode = {
       id: `evt-${Date.now()}`,
       characters: [...node.characters],
       label,
-      description: event.name || label,
+      description: event.name,
       col: node.col,
       row: insertRow,
       type: event.type,
@@ -154,6 +303,7 @@ export class App {
 
   /** Voeg een gebeurtenis-node in op een bestaande pijl. */
   onEventInserted(event: { edgeId: string; name: string; type: 'dungeon' | 'event' | 'split' }): void {
+    this.snapshot();
     const edge = this.extraEdges.find(e => e.id === event.edgeId);
     if (!edge) return;
 
@@ -171,13 +321,13 @@ export class App {
       event:   'Verhaaltwist',
       split:   'Gebeurtenis',
     };
-    const label = event.name || defaultLabels[event.type];
+    const label = defaultLabels[event.type];
 
     const eventNode: StoryNode = {
       id: `evt-${Date.now()}`,
       characters: [...fromNode.characters],
       label,
-      description: event.name || label,
+      description: event.name,
       col: fromNode.col,
       row: insertRow,
       type: event.type,
@@ -194,6 +344,7 @@ export class App {
 
   /** Karakter verlaat groep → groep gaat verder zonder hem/haar. */
   onCharacterLeft({ fromNodeId, charId }: { fromNodeId: string; charId: string }): void {
+    this.snapshot();
     const fromNode  = this.nodes.find(n => n.id === fromNodeId)!;
     const remaining = fromNode.characters.filter(c => c !== charId);
     const char      = this.characters.find(c => c.id === charId)!;
@@ -215,6 +366,7 @@ export class App {
 
   /** Karakter stapt over naar een andere groep. */
   onCharacterMoved({ fromNodeId, charId, toNodeId }: { fromNodeId: string; charId: string; toNodeId: string }): void {
+    this.snapshot();
     const fromNode  = this.nodes.find(n => n.id === fromNodeId)!;
     const toNode    = this.nodes.find(n => n.id === toNodeId)!;
     const char      = this.characters.find(c => c.id === charId)!;
@@ -255,6 +407,7 @@ export class App {
 
   /** Twee groepen smelten samen → gecombineerde groep. */
   onMergeRequested(event: { parentId: string; mergeWithId: string }): void {
+    this.snapshot();
     const a = this.nodes.find(n => n.id === event.parentId)!;
     const b = this.nodes.find(n => n.id === event.mergeWithId)!;
 

@@ -14,11 +14,63 @@
       <h1 class="header-title">Story Path</h1>
       <p class="header-sub">JRPG verhaallijn visualisatie</p>
     </div>
+
+    <!-- Projectnaam (bewerkbaar) -->
+    <input class="project-name-input"
+           [(ngModel)]="currentProject"
+           title="Projectnaam (klik om te wijzigen)" />
+
+    <!-- Projecten-dropdown -->
+    <div class="project-dropdown-wrap">
+      <button class="settings-btn" (click)="projectsOpen = !projectsOpen" title="Projecten beheren">
+        <i class="fa-solid fa-folder-open"></i>
+        Projecten
+      </button>
+      @if (projectsOpen) {
+        <div class="project-dropdown" (click)="$event.stopPropagation()">
+          @if (projectList.length === 0) {
+            <p class="project-empty">Nog niets opgeslagen.</p>
+          }
+          @for (name of projectList; track name) {
+            <button class="project-item" [class.project-item--active]="name === currentProject"
+                    (click)="loadProject(name)">
+              <i class="fa-solid fa-scroll"></i>
+              <span class="project-item-name">{{ name }}</span>
+              <span class="project-item-delete" (click)="deleteProject(name, $event)" title="Verwijder project">
+                <i class="fa-solid fa-trash-can"></i>
+              </span>
+            </button>
+          }
+          <button class="project-new-btn" (click)="newProject()">
+            <i class="fa-solid fa-plus"></i> Nieuw project
+          </button>
+        </div>
+      }
+    </div>
+
+    <button class="settings-btn" [class.settings-btn--saved]="saveLabel !== 'Opslaan'"
+            (click)="save()" title="Verhaallijn opslaan in browser">
+      <i class="fa-solid fa-floppy-disk"></i>
+      {{ saveLabel }}
+    </button>
+    <button class="settings-btn" [disabled]="!canUndo" (click)="undo()" title="Laatste stap ongedaan maken">
+      <i class="fa-solid fa-rotate-left"></i>
+      Ongedaan
+    </button>
+    <button class="settings-btn" [disabled]="!canRedo" (click)="redo()" title="Opnieuw uitvoeren">
+      <i class="fa-solid fa-rotate-right"></i>
+      Opnieuw
+    </button>
     <button class="settings-btn" (click)="settingsOpen = true" title="Instellingen">
       <i class="fa-solid fa-sliders"></i>
       Instellingen
     </button>
   </header>
+
+  <!-- Klik buiten dropdown sluit hem -->
+  @if (projectsOpen) {
+    <div class="projects-backdrop" (click)="projectsOpen = false"></div>
+  }
 
   <app-story-canvas
     [nodes]="nodes"

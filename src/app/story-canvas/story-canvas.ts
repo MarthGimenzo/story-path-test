@@ -21,17 +21,55 @@ export class StoryCanvas {
   @Output() characterMoved   = new EventEmitter<{ fromNodeId: string; charId: string; toNodeId: string }>();
 
   // ── Layout constanten ──────────────────────────────────────────────────────
-  readonly NODE_WIDTH    = 190;
-  readonly COL_SPACING   = 320;
-  readonly ROW_SPACING   = 360;
-  readonly PADDING_X     = 80;
-  readonly PADDING_BOTTOM = 55;
+  readonly NODE_WIDTH  = 190;
+  readonly COL_SPACING = 320;
+  readonly ROW_GAP     = 80;   // minimale ruimte tussen rijen
+  readonly PADDING_X   = 80;
+  readonly PADDING_TOP = 60;   // ruimte boven de eerste rij
 
   readonly DOTS_PER_ROW  = 6;
   readonly DOT_R         = 8;   // straal bondgenoot-dot
   readonly DOT_R_LEADER  = 10;  // straal aanvoerder-dot
   readonly DOT_GAP       = 5;
   readonly DOT_AREA_TOP  = 54;  // Y waar dots beginnen (relatief aan node top)
+
+  // ── Pan/sleep state ───────────────────────────────────────────────────────
+  panX = 40;
+  panY = 40;
+  isDragging = false;
+  private didPan = false;
+  private dragLastX = 0;
+  private dragLastY = 0;
+
+  onPanStart(event: MouseEvent): void {
+    // Alleen slepen als achtergrond geklikt (niet een interactief element)
+    const target = event.target as Element;
+    if (target.closest('foreignObject, .picker-overlay')) return;
+    this.isDragging = true;
+    this.didPan     = false;
+    this.dragLastX  = event.clientX;
+    this.dragLastY  = event.clientY;
+    event.preventDefault();
+  }
+
+  onPanMove(event: MouseEvent): void {
+    if (!this.isDragging) return;
+    const dx = event.clientX - this.dragLastX;
+    const dy = event.clientY - this.dragLastY;
+    if (Math.abs(dx) > 2 || Math.abs(dy) > 2) this.didPan = true;
+    this.panX += dx;
+    this.panY += dy;
+    this.dragLastX = event.clientX;
+    this.dragLastY = event.clientY;
+  }
+
+  onPanEnd(): void {
+    this.isDragging = false;
+  }
+
+  onCanvasClick(): void {
+    if (!this.didPan) this.closeAllPickers();
+  }
 
   // ── '+' picker state ──────────────────────────────────────────────────────
   pickerParentId: string | null = null;
@@ -63,8 +101,33 @@ export class StoryCanvas {
   }
 
   get svgHeight(): number {
-    const maxRow = this.nodes.reduce((max, n) => Math.max(max, n.row), 0);
-    return Math.max(480, this.PADDING_BOTTOM + (maxRow + 2) * this.ROW_SPACING);
+    const rows = this.sortedRows;
+    if (rows.length === 0) return 480;
+    let h = this.PADDING_TOP;
+    for (const r of rows) h += this.getRowMaxHeight(r) + this.ROW_GAP;
+    return Math.max(480, h);
+  }
+
+  /** Unieke rijindexen, oplopend gesorteerd. */
+  private get sortedRows(): number[] {
+    return [...new Set(this.nodes.map(n => n.row))].sort((a, b) => a - b);
+  }
+
+  /** Maximale nodehoogte van alle nodes in een rij. */
+  private getRowMaxHeight(row: number): number {
+    const heights = this.nodes.filter(n => n.row === row).map(n => this.getNodeHeight(n));
+    return heights.length > 0 ? Math.max(...heights) : 100;
+  }
+
+  /** Midden-Y van een rij, gemeten van de bovenkant van de SVG (top-down). */
+  private getRowCenterY(row: number): number {
+    let y = this.PADDING_TOP;
+    for (const r of this.sortedRows) {
+      const rh = this.getRowMaxHeight(r);
+      if (r === row) return y + rh / 2;
+      y += rh + this.ROW_GAP;
+    }
+    return y;
   }
 
   // ── Tekstwrap ──────────────────────────────────────────────────────────────
@@ -101,9 +164,7 @@ export class StoryCanvas {
   }
 
   getNodeY(node: StoryNode): number {
-    const h = this.getNodeHeight(node);
-    const slotCenterY = this.svgHeight - this.PADDING_BOTTOM - (node.row + 0.5) * this.ROW_SPACING;
-    return slotCenterY - h / 2;
+    return this.getRowCenterY(node.row) - this.getNodeHeight(node) / 2;
   }
 
   getNodeCenterX(node: StoryNode): number {
@@ -111,10 +172,7 @@ export class StoryCanvas {
   }
 
   getRowLabelY(row: number): number {
-    const node = this.nodes.find(n => n.row === row);
-    if (!node) return -100;
-    const h = this.getNodeHeight(node);
-    return this.getNodeY(node) + h / 2 + 5;
+    return this.getRowCenterY(row);
   }
 
   get activeRows(): number[] {
@@ -161,9 +219,9 @@ export class StoryCanvas {
     }
 
     const x1 = this.getNodeCenterX(from);
-    const y1 = this.getNodeY(from);
+    const y1 = this.getNodeY(from) + this.getNodeHeight(from);  // onderkant van 'from'
     const x2 = this.getNodeCenterX(to);
-    const y2 = this.getNodeY(to) + this.getNodeHeight(to) - 2;
+    const y2 = this.getNodeY(to);                                // bovenkant van 'to'
     const midY = (y1 + y2) / 2;
     return `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`;
   }
@@ -182,15 +240,18 @@ export class StoryCanvas {
     if (edge.type === 'character-move' && edge.charId) {
       return this.getCharacter(edge.charId)?.color ?? '#aaaaaa';
     }
-    return '#5a3a8a';
+    // Verhaalpijl: kleur van het leidende personage van de bronnode
+    const from = this.nodes.find(n => n.id === edge.from);
+    const leadId = from?.characters[0];
+    return leadId ? (this.getCharacter(leadId)?.color ?? '#5a8aaa') : '#5a8aaa';
   }
 
   getEdgeDash(edge: StoryEdge): string {
-    return edge.type === 'character-move' ? '4,3' : '6,4';
+    return edge.type === 'character-move' ? '4,3' : 'none';
   }
 
   getEdgeWidth(edge: StoryEdge): number {
-    return edge.type === 'character-move' ? 1.5 : 2;
+    return edge.type === 'character-move' ? 1.5 : 2.5;
   }
 
   // ── Leaf nodes = actieve groepen (geen uitgaande verhaal-edges) ───────────
@@ -279,7 +340,7 @@ export class StoryCanvas {
   getEdgeMidY(edge: StoryEdge): number {
     const from = this.nodes.find(n => n.id === edge.from)!;
     const to   = this.nodes.find(n => n.id === edge.to)!;
-    return (this.getNodeY(from) + this.getNodeY(to) + this.getNodeHeight(to)) / 2;
+    return (this.getNodeY(from) + this.getNodeHeight(from) + this.getNodeY(to)) / 2;
   }
 
   openEdgePicker(edgeId: string, event: MouseEvent): void {
