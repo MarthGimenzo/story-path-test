@@ -631,38 +631,31 @@ export class StoryCanvas implements OnChanges, AfterViewInit, OnDestroy {
     return this.characters.find(c => c.id === id);
   }
 
-  getNodeFill(type: string): string {
-    const map: Record<string, string> = {
-      start:     '#061a2e',
-      encounter: '#15082a',
-      dungeon:   '#200808',
-      event:     '#071a0f',
-      split:     '#1a1508',
-    };
-    return map[type] ?? '#111827';
+  /** Kleur van de verhaallijns leidende personage — gebruikt voor node-achtergrond en -rand. */
+  getNodeStoryColor(node: StoryNode): string {
+    const leadId = node.characters[0];
+    return leadId ? (this.getCharacter(leadId)?.color ?? '#8a7060') : '#8a7060';
   }
 
-  getNodeStroke(node: StoryNode): string {
-    if (node.type === 'start' && node.characters.length === 1) {
-      return this.getCharacter(node.characters[0])?.color ?? '#4fc3f7';
-    }
+  getNodeTypeIcon(type: string): string {
     const map: Record<string, string> = {
-      encounter: '#9c6fce',
-      dungeon:   '#ef5350',
-      event:     '#66bb6a',
-      split:     '#ffb74d',
+      start:     'fa-flag',
+      encounter: 'fa-users',
+      dungeon:   'fa-dungeon',
+      event:     'fa-scroll',
+      split:     'fa-code-branch',
     };
-    return map[node.type] ?? '#4b5563';
+    return map[type] ?? 'fa-circle';
   }
 
   getTypeLabelColor(type: string): string {
     const map: Record<string, string> = {
-      start:     '#4fc3f7',
-      encounter: '#ce93d8',
-      dungeon:   '#ef5350',
-      event:     '#81c784',
-      split:     '#ffb74d',
+      start:     '#f5c858',
+      encounter: '#c090e0',
+      dungeon:   '#f0704a',
+      event:     '#70c890',
+      split:     '#f0a840',
     };
-    return map[type] ?? '#9e9e9e';
+    return map[type] ?? '#c0966a';
   }
 }

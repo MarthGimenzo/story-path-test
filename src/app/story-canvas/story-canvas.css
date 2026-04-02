@@ -1,7 +1,7 @@
 .canvas-wrap {
   position: relative;
-  background: #0c1824;
-  border: 1px solid #1a3050;
+  background: #1a1008;
+  border: 1px solid #3d2810;
   border-radius: 12px;
   overflow: hidden;
   width: 100%;
@@ -26,20 +26,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #3a5068;
+  color: #5a3a1a;
   font-size: 14px;
-  font-family: monospace;
+  font-family: 'Lora', Georgia, serif;
+  font-style: italic;
   pointer-events: none;
 }
 
 /* ── Node animatie bij verschijnen ── */
-/* Animatie alleen voor zojuist aangemakte nodes */
 .node-new {
   animation: nodeAppear 0.4s ease-out 2s both;
 }
 
 @keyframes nodeAppear {
-  from { opacity: 0; }
+  from { opacity: 0; transform-origin: center; }
   to   { opacity: 1; }
 }
 
@@ -47,8 +47,8 @@
 
 .node-dragging {
   cursor: grabbing;
-  filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.65));
-  opacity: 0.9;
+  filter: drop-shadow(0 6px 20px rgba(0, 0, 0, 0.75));
+  opacity: 0.92;
 }
 
 /* ── Pijl-teken animatie ── */
@@ -57,14 +57,8 @@
 }
 
 @keyframes drawEdge {
-  from {
-    stroke-dasharray: 2000;
-    stroke-dashoffset: 2000;
-  }
-  to {
-    stroke-dasharray: 2000;
-    stroke-dashoffset: 0;
-  }
+  from { stroke-dasharray: 2000; stroke-dashoffset: 2000; }
+  to   { stroke-dasharray: 2000; stroke-dashoffset: 0; }
 }
 
 /* ── Klikbare karakter-dots ── */
@@ -82,57 +76,58 @@
 
 .event-type-btn {
   flex: 1;
-  background: #0d1f30;
-  border: 1px solid #1a3050;
+  background: #261808;
+  border: 1px solid #3a2410;
   border-radius: 8px;
-  color: #4a6a8a;
+  color: #7a5a38;
   font-size: 12px;
-  font-family: inherit;
+  font-family: 'Lora', Georgia, serif;
   padding: 6px 10px;
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
 .event-type-btn:hover {
-  border-color: #2a5070;
-  color: #7aaac8;
+  border-color: #7a5028;
+  color: #c0966a;
 }
 .event-type-btn.selected {
-  border-color: #4fc3f7;
-  background: color-mix(in srgb, #4fc3f7 12%, #0d1f30);
-  color: #4fc3f7;
+  border-color: #e8a840;
+  background: color-mix(in srgb, #e8a840 12%, #261808);
+  color: #e8a840;
 }
 
 .event-name-input {
   width: 100%;
-  background: #081420;
-  border: 1px solid #1a3050;
+  background: #1a1008;
+  border: 1px solid #3a2410;
   border-radius: 8px;
-  color: #c8d8e8;
+  color: #e8d4b0;
   font-size: 13px;
-  font-family: inherit;
+  font-family: 'Lora', Georgia, serif;
   padding: 8px 12px;
   outline: none;
   transition: border-color 0.15s;
 }
-.event-name-input:focus { border-color: #2a5070; }
-.event-name-input::placeholder { color: #2a4060; }
+.event-name-input:focus { border-color: #7a5028; }
+.event-name-input::placeholder { color: #4a2e10; }
 
 .confirm-event-btn {
   width: 100%;
-  background: #0d2535;
-  border: 1px solid #2a5070;
+  background: #2a1c08;
+  border: 1px solid #6a4820;
   border-radius: 8px;
-  color: #4fc3f7;
+  color: #e8a840;
   font-size: 13px;
-  font-family: inherit;
+  font-family: 'Cinzel', Georgia, serif;
+  letter-spacing: 0.5px;
   padding: 9px;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
   font-weight: 600;
 }
 .confirm-event-btn:hover {
-  background: #15304a;
-  border-color: #4fc3f7;
+  background: #3a2410;
+  border-color: #e8a840;
 }
 
 /* ── '+' knop ── */
@@ -141,46 +136,46 @@
 .remove-btn { cursor: pointer; }
 
 .remove-circle {
-  fill: #1a0808;
-  stroke: #3a1818;
+  fill: #200a04;
+  stroke: #4a1808;
   stroke-width: 1.5;
   transition: fill 0.15s, stroke 0.15s;
 }
 .remove-btn:hover .remove-circle {
-  fill: #3a0f0f;
-  stroke: #ef5350;
+  fill: #3a0e08;
+  stroke: #e05a30;
 }
 
 .remove-x {
-  fill: #5a2a2a;
+  fill: #6a2818;
   font-size: 9px;
   font-family: monospace;
   font-weight: bold;
   pointer-events: none;
   transition: fill 0.15s;
 }
-.remove-btn:hover .remove-x { fill: #ef5350; }
+.remove-btn:hover .remove-x { fill: #e05a30; }
 
 .add-circle {
-  fill: #0d1f30;
-  stroke: #2a4060;
+  fill: #1e1208;
+  stroke: #4a3018;
   stroke-width: 1.5;
   transition: fill 0.15s, stroke 0.15s;
 }
 .add-btn:hover .add-circle {
-  fill: #1a3050;
-  stroke: #4a7aaa;
+  fill: #2e1e0a;
+  stroke: #9a7248;
 }
 
 .add-plus {
-  fill: #3a6080;
+  fill: #6a4820;
   font-size: 18px;
   font-family: monospace;
   font-weight: bold;
   pointer-events: none;
   transition: fill 0.15s;
 }
-.add-btn:hover .add-plus { fill: #7ab8d8; }
+.add-btn:hover .add-plus { fill: #e8c870; }
 
 /* ── Zoom controls ── */
 .zoom-controls {
@@ -192,8 +187,8 @@
   align-items: center;
   gap: 2px;
   z-index: 20;
-  background: rgba(8, 18, 30, 0.85);
-  border: 1px solid #1a3050;
+  background: rgba(26, 16, 8, 0.88);
+  border: 1px solid #3d2810;
   border-radius: 10px;
   padding: 4px;
   backdrop-filter: blur(4px);
@@ -205,7 +200,7 @@
   background: none;
   border: none;
   border-radius: 6px;
-  color: #4a6a8a;
+  color: #7a5a38;
   font-size: 11px;
   cursor: pointer;
   display: flex;
@@ -216,8 +211,8 @@
   font-family: inherit;
 }
 .zoom-btn:hover:not(:disabled) {
-  background: #1a3050;
-  color: #7aaac8;
+  background: #2e1e0a;
+  color: #e8a840;
 }
 .zoom-btn:disabled {
   opacity: 0.3;
@@ -230,10 +225,10 @@
   background: none;
   border: none;
   border-radius: 4px;
-  color: #3a5a7a;
+  color: #6a4820;
   font-size: 9px;
-  font-family: monospace;
-  letter-spacing: 0.3px;
+  font-family: 'Cinzel', monospace, serif;
+  letter-spacing: 0.2px;
   cursor: pointer;
   padding: 0;
   display: flex;
@@ -242,15 +237,15 @@
   transition: background 0.15s, color 0.15s;
 }
 .zoom-label-btn:hover {
-  background: #1a3050;
-  color: #4fc3f7;
+  background: #2e1e0a;
+  color: #e8a840;
 }
 
 /* ── Picker overlay ── */
 .picker-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.65);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -259,13 +254,14 @@
 }
 
 .picker-panel {
-  background: #0a1929;
-  border: 1px solid #1a3050;
+  background: #1e1409;
+  border: 1px solid #4a3018;
   border-radius: 12px;
   width: 300px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7);
 }
 
 .picker-header {
@@ -273,33 +269,34 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px 16px 12px;
-  border-bottom: 1px solid #1a3050;
+  border-bottom: 1px solid #3a2410;
   flex-shrink: 0;
 }
 
 .picker-title {
-  font-size: 12px;
-  letter-spacing: 1.5px;
+  font-size: 11px;
+  letter-spacing: 2px;
   text-transform: uppercase;
-  color: #4a6a8a;
+  color: #9a7248;
+  font-family: 'Cinzel', Georgia, serif;
 }
 
 .picker-close {
   background: none;
   border: none;
-  color: #3a5068;
+  color: #6a4820;
   font-size: 15px;
   cursor: pointer;
   padding: 2px 5px;
   border-radius: 4px;
   line-height: 1;
 }
-.picker-close:hover { color: #7aa8c8; }
+.picker-close:hover { color: #e8a840; }
 
 /* ── Picker secties ── */
 .picker-section {
   padding: 12px 12px 8px;
-  border-bottom: 1px solid #0f2035;
+  border-bottom: 1px solid #261808;
 }
 .picker-section:last-child { border-bottom: none; }
 
@@ -308,8 +305,9 @@
   font-size: 10px;
   letter-spacing: 1.5px;
   text-transform: uppercase;
-  color: #2a4060;
+  color: #5a3a1a;
   margin-bottom: 8px;
+  font-family: 'Cinzel', Georgia, serif;
 }
 
 .picker-list {
@@ -323,8 +321,9 @@
 .picker-empty {
   padding: 20px;
   font-size: 12px;
-  color: #2a4060;
+  color: #5a3a1a;
   text-align: center;
+  font-style: italic;
 }
 
 /* ── Verlaat-knop ── */
@@ -333,20 +332,20 @@
   align-items: center;
   gap: 8px;
   width: 100%;
-  background: #1a0e08;
-  border: 1px solid #3a2010;
+  background: #200e06;
+  border: 1px solid #4a2010;
   border-radius: 8px;
   padding: 8px 12px;
-  color: #c87a40;
+  color: #c87040;
   font-size: 13px;
-  font-family: inherit;
+  font-family: 'Lora', Georgia, serif;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
   text-align: left;
 }
 .leave-btn:hover {
-  background: #2a1508;
-  border-color: #c87a40;
+  background: #2e1208;
+  border-color: #c87040;
 }
 
 .leave-icon {
@@ -356,9 +355,10 @@
 
 .leave-note {
   font-size: 11px;
-  color: #2a3a50;
+  color: #4a3020;
   margin-top: 6px;
   line-height: 1.5;
+  font-style: italic;
 }
 
 /* ── Inline dot in picker title ── */
@@ -376,19 +376,19 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  background: #0d1f30;
-  border: 1px solid #1a3050;
+  background: #261808;
+  border: 1px solid #3a2410;
   border-radius: 20px;
   padding: 6px 14px 6px 10px;
   font-size: 13px;
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
-  font-family: inherit;
+  font-family: 'Lora', Georgia, serif;
   text-align: left;
 }
 .char-chip:hover {
-  border-color: var(--char-color, #4fc3f7);
-  background: color-mix(in srgb, var(--char-color, #4fc3f7) 10%, #0d1f30);
+  border-color: var(--char-color, #e8a840);
+  background: color-mix(in srgb, var(--char-color, #e8a840) 10%, #261808);
 }
 
 .char-dot {
@@ -398,26 +398,26 @@
   flex-shrink: 0;
 }
 
-.char-name { color: #a8c0d8; }
+.char-name { color: #c0966a; }
 
 /* ── Groep chip (merge) ── */
 .group-chip {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: #0d1f30;
-  border: 1px solid #2a3a50;
+  background: #261808;
+  border: 1px solid #3a2810;
   border-radius: 10px;
   padding: 8px 12px;
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
-  font-family: inherit;
+  font-family: 'Lora', Georgia, serif;
   text-align: left;
   width: 100%;
 }
 .group-chip:hover {
-  border-color: #9c6fce;
-  background: #130825;
+  border-color: #c090e0;
+  background: #1e1020;
 }
 
 .group-dots {
@@ -442,6 +442,6 @@
 
 .group-label {
   font-size: 11px;
-  color: #6a8aaa;
+  color: #9a7248;
   letter-spacing: 0.5px;
 }

@@ -1,16 +1,12 @@
 /* ── Global reset ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-body {
-  margin: 0!important;
-}
-
 /* ── Page layout ── */
 .page {
   height: 100vh;
-  background: #08111e;
-  color: #e0eaf4;
-  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #130d05;
+  color: #e8d4b0;
+  font-family: 'Lora', Georgia, serif;
   display: flex;
   flex-direction: column;
   padding: 20px 24px 16px;
@@ -33,26 +29,28 @@ body {
 .header-icon {
   font-size: 32px;
   line-height: 1;
-  color: #9c6fce;
-  text-shadow: 0 0 12px #9c6fce88;
+  color: #e8a840;
+  text-shadow: 0 0 16px rgba(232, 168, 64, 0.5);
 }
 
 .header-title {
-  font-size: 28px;
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 26px;
   font-weight: 700;
-  letter-spacing: 3px;
+  letter-spacing: 4px;
   text-transform: uppercase;
-  background: linear-gradient(135deg, #4fc3f7, #9c6fce);
+  background: linear-gradient(135deg, #f5c858, #c87830);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .header-sub {
-  font-size: 12px;
-  color: #4a6a8a;
-  letter-spacing: 1px;
+  font-size: 11px;
+  color: #7a5a38;
+  letter-spacing: 1.5px;
   margin-top: 2px;
+  font-style: italic;
 }
 
 /* ── Canvas vult resterende hoogte ── */
@@ -68,27 +66,28 @@ app-story-canvas .canvas-wrap {
   height: 100% !important;
 }
 
-/* ── Settings knop ── */
+/* ── Header knoppen ── */
 .settings-btn {
   display: flex;
   align-items: center;
   gap: 7px;
-  background: #0d1f30;
-  border: 1px solid #1a3050;
+  background: #1e1409;
+  border: 1px solid #4a3018;
   border-radius: 8px;
-  color: #4a6a8a;
+  color: #9a7248;
   font-size: 12px;
-  font-family: inherit;
-  letter-spacing: 0.5px;
+  font-family: 'Cinzel', Georgia, serif;
+  letter-spacing: 0.8px;
   padding: 7px 14px;
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
   white-space: nowrap;
 }
 
 .settings-btn:hover {
-  border-color: #2a4a70;
-  color: #7aa8c8;
+  border-color: #e8a840;
+  color: #e8c870;
+  background: #2a1c0a;
 }
 
 .settings-btn:disabled {
@@ -98,19 +97,19 @@ app-story-canvas .canvas-wrap {
 }
 
 .settings-btn--saved {
-  border-color: #2a6a40;
-  color: #66bb6a;
+  border-color: #4a8040;
+  color: #80c060;
 }
 
 /* ── Projectnaam input ── */
 .project-name-input {
   background: transparent;
   border: none;
-  border-bottom: 1px solid #1a3050;
-  color: #7aa8c8;
+  border-bottom: 1px solid #4a3018;
+  color: #c89050;
   font-size: 13px;
-  font-family: inherit;
-  letter-spacing: 0.5px;
+  font-family: 'Cinzel', Georgia, serif;
+  letter-spacing: 1px;
   padding: 4px 6px;
   outline: none;
   min-width: 0;
@@ -118,8 +117,8 @@ app-story-canvas .canvas-wrap {
   transition: border-color 0.15s, color 0.15s;
 }
 .project-name-input:focus {
-  border-color: #4fc3f7;
-  color: #c8e8f8;
+  border-color: #e8a840;
+  color: #f5c858;
 }
 
 /* ── Projecten dropdown ── */
@@ -131,8 +130,8 @@ app-story-canvas .canvas-wrap {
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  background: #0a1929;
-  border: 1px solid #1a3050;
+  background: #1e1409;
+  border: 1px solid #4a3018;
   border-radius: 10px;
   min-width: 220px;
   z-index: 100;
@@ -140,14 +139,15 @@ app-story-canvas .canvas-wrap {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.65);
 }
 
 .project-empty {
   font-size: 12px;
-  color: #2a4060;
+  color: #5a3a1a;
   text-align: center;
   padding: 10px 0 4px;
+  font-style: italic;
 }
 
 .project-item {
@@ -155,21 +155,21 @@ app-story-canvas .canvas-wrap {
   align-items: center;
   gap: 8px;
   width: 100%;
-  background: #0d1f30;
-  border: 1px solid #1a3050;
+  background: #261808;
+  border: 1px solid #3a2410;
   border-radius: 7px;
   padding: 7px 10px;
-  color: #7090a8;
+  color: #9a7248;
   font-size: 13px;
-  font-family: inherit;
+  font-family: 'Lora', Georgia, serif;
   cursor: pointer;
   text-align: left;
   transition: background 0.15s, border-color 0.15s;
 }
-.project-item:hover { background: #152535; border-color: #2a4a6a; }
+.project-item:hover { background: #321e0c; border-color: #6a4820; }
 .project-item--active {
-  border-color: #4fc3f7;
-  color: #c8e8f8;
+  border-color: #e8a840;
+  color: #f5c858;
 }
 
 .project-item-name {
@@ -180,28 +180,28 @@ app-story-canvas .canvas-wrap {
 }
 
 .project-item-delete {
-  color: #3a5068;
+  color: #5a3a20;
   font-size: 11px;
   padding: 2px 4px;
   border-radius: 4px;
   transition: color 0.15s;
 }
-.project-item-delete:hover { color: #ef5350; }
+.project-item-delete:hover { color: #e05a30; }
 
 .project-new-btn {
   width: 100%;
   background: none;
-  border: 1px dashed #1a3050;
+  border: 1px dashed #3a2410;
   border-radius: 7px;
-  color: #3a6080;
+  color: #6a4820;
   font-size: 12px;
-  font-family: inherit;
+  font-family: 'Lora', Georgia, serif;
   padding: 7px;
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s;
   margin-top: 2px;
 }
-.project-new-btn:hover { border-color: #4a7aaa; color: #6aaace; }
+.project-new-btn:hover { border-color: #e8a840; color: #c89050; }
 
 .projects-backdrop {
   position: fixed;

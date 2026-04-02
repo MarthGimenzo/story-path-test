@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap');
+
 body { margin: 0; }
 
 /* ── SVG foreignObject icon-knoppen (niet component-scoped) ── */
@@ -17,38 +19,38 @@ body { margin: 0; }
 
 /* Personage toevoegen (node top) */
 .svg-icon-btn--add {
-  background: #061a2e;
-  border-color: #1a4060;
-  color: #3a7090;
+  background: rgba(26, 16, 8, 0.9);
+  border-color: #5a3a1a;
+  color: #8a6040;
 }
 .svg-icon-btn--add:hover {
-  background: #0d2a45;
-  border-color: #4fc3f7;
-  color: #4fc3f7;
+  background: rgba(50, 30, 10, 0.95);
+  border-color: #e8a840;
+  color: #e8a840;
 }
 
 /* Gebeurtenis invoegen (pijl midden) */
 .svg-icon-btn--event {
-  background: #0a1220;
-  border-color: #1e3050;
-  color: #2a4a70;
+  background: rgba(20, 12, 5, 0.9);
+  border-color: #4a2e10;
+  color: #6a4820;
 }
 .svg-icon-btn--event:hover {
-  background: #0f1e35;
-  border-color: #9c6fce;
-  color: #9c6fce;
+  background: rgba(40, 22, 8, 0.95);
+  border-color: #c090e0;
+  color: #c090e0;
 }
 
 /* Verwijderen (node corner) */
 .svg-icon-btn--delete {
-  background: #1a0808;
-  border-color: #2a1010;
-  color: #5a2a2a;
+  background: rgba(26, 8, 4, 0.9);
+  border-color: #4a1808;
+  color: #7a3020;
   border-radius: 6px;
   font-size: 10px;
 }
 .svg-icon-btn--delete:hover {
-  background: #2a0f0f;
-  border-color: #ef5350;
-  color: #ef5350;
+  background: rgba(50, 12, 6, 0.95);
+  border-color: #e05a30;
+  color: #e05a30;
 }

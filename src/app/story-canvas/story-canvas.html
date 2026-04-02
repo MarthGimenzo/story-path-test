@@ -26,13 +26,13 @@
           <feMergeNode in="SourceGraphic" />
         </feMerge>
       </filter>
-      <!-- Grid patroon (wereld-coördinaten, schaalt automatisch mee met zoom) -->
-      <pattern id="grid-minor" width="80" height="80" patternUnits="userSpaceOnUse">
-        <path d="M 80 0 L 0 0 0 80" fill="none" stroke="#111e2c" stroke-width="0.5"/>
+      <!-- Stippelgrid (wereld-coördinaten, schaalt automatisch mee met zoom) -->
+      <pattern id="grid-minor" width="60" height="60" patternUnits="userSpaceOnUse">
+        <circle cx="0" cy="0" r="1.2" fill="#2e1c09"/>
       </pattern>
-      <pattern id="grid-major" width="400" height="400" patternUnits="userSpaceOnUse">
-        <rect width="400" height="400" fill="url(#grid-minor)"/>
-        <path d="M 400 0 L 0 0 0 400" fill="none" stroke="#162030" stroke-width="1"/>
+      <pattern id="grid-major" width="300" height="300" patternUnits="userSpaceOnUse">
+        <rect width="300" height="300" fill="url(#grid-minor)"/>
+        <circle cx="0" cy="0" r="2.2" fill="#3e2a0e"/>
       </pattern>
     </defs>
 
@@ -50,7 +50,7 @@
           [attr.y1]="0"
           [attr.x2]="getNodeCenterX(node)"
           [attr.y2]="svgHeight"
-          stroke="#1e2a3a" stroke-width="1" stroke-dasharray="4,8"
+          stroke="#3a2410" stroke-width="1" stroke-dasharray="4,8"
         />
       }
     }
@@ -60,8 +60,8 @@
       <text
         [attr.x]="PADDING_X - 10"
         [attr.y]="getRowLabelY(row)"
-        text-anchor="end" fill="#3a5068"
-        font-size="11" font-family="monospace" letter-spacing="1"
+        text-anchor="end" fill="#7a5a38"
+        font-size="11" font-family="Cinzel, Georgia, serif" letter-spacing="1"
       >{{ rowLabel(row) }}</text>
     }
 
@@ -107,23 +107,40 @@
         <rect
           [attr.width]="NODE_WIDTH"
           [attr.height]="getNodeHeight(node)"
-          rx="10"
-          [attr.fill]="getNodeFill(node.type)"
-          [attr.stroke]="getNodeStroke(node)"
-          stroke-width="1.5"
-          [attr.filter]="node.type === 'start' ? 'url(#glow)' : null"
+          rx="12"
+          [attr.fill]="getNodeStoryColor(node)"
+          fill-opacity="0.16"
+          [attr.stroke]="getNodeStoryColor(node)"
+          stroke-width="2"
         />
+        @if (node.type === 'start') {
+          <rect
+            [attr.width]="NODE_WIDTH"
+            [attr.height]="getNodeHeight(node)"
+            rx="12"
+            [attr.fill]="getNodeStoryColor(node)"
+            fill-opacity="0.08"
+            stroke="none"
+            filter="url(#glow)"
+          />
+        }
 
-        <!-- Type-badge -->
-        <rect x="10" y="8" rx="4" height="16"
-          [attr.width]="node.label.length * 7 + 12"
-          [attr.fill]="getNodeFill(node.type)"
-          [attr.stroke]="getTypeLabelColor(node.type)"
-          stroke-width="1" opacity="0.9"
-        />
-        <text x="16" y="20"
+        <!-- Type-badge met icoon -->
+        <rect x="10" y="8" rx="5" height="17"
+          [attr.width]="node.label.length * 7.5 + 30"
           [attr.fill]="getTypeLabelColor(node.type)"
-          font-size="10" font-family="monospace" letter-spacing="0.5" font-weight="bold"
+          fill-opacity="0.18"
+          [attr.stroke]="getTypeLabelColor(node.type)"
+          stroke-width="1"
+        />
+        <foreignObject x="12" y="9.5" width="13" height="13" style="overflow:visible; pointer-events:none">
+          <i [class]="'fa-solid ' + getNodeTypeIcon(node.type)"
+             [style.color]="getTypeLabelColor(node.type)"
+             style="font-size:8px; display:flex; align-items:center; justify-content:center; width:100%; height:100%;"></i>
+        </foreignObject>
+        <text x="28" y="20.5"
+          [attr.fill]="getTypeLabelColor(node.type)"
+          font-size="9.5" font-family="Cinzel, Georgia, serif" letter-spacing="0.8" font-weight="700"
         >{{ node.label }}</text>
 
         <!-- Beschrijving (meerdere regels indien nodig) -->
@@ -131,8 +148,8 @@
           <text
             [attr.x]="NODE_WIDTH / 2"
             [attr.y]="38 + i * 14"
-            text-anchor="middle" fill="#7090a8"
-            font-size="11" font-family="'Segoe UI', Arial, sans-serif"
+            text-anchor="middle" fill="#c0966a"
+            font-size="11" font-family="Lora, Georgia, serif"
           >{{ line }}</text>
         }
 

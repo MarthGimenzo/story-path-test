@@ -2,7 +2,7 @@
 .sidebar-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(0, 0, 0, 0.6);
   z-index: 10;
 }
 
@@ -13,8 +13,8 @@
   right: 0;
   height: 100vh;
   width: 300px;
-  background: #0a1929;
-  border-left: 1px solid #1a3050;
+  background: #1e1409;
+  border-left: 1px solid #4a3018;
   z-index: 20;
   display: flex;
   flex-direction: column;
@@ -33,22 +33,23 @@
   align-items: center;
   justify-content: space-between;
   padding: 20px 20px 16px;
-  border-bottom: 1px solid #1a3050;
+  border-bottom: 1px solid #3a2410;
   flex-shrink: 0;
 }
 
 .sidebar-title {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 2px;
+  letter-spacing: 2.5px;
   text-transform: uppercase;
-  color: #4a6a8a;
+  color: #9a7248;
+  font-family: 'Cinzel', Georgia, serif;
 }
 
 .sidebar-close {
   background: none;
   border: none;
-  color: #3a5068;
+  color: #6a4820;
   font-size: 16px;
   cursor: pointer;
   padding: 2px 6px;
@@ -58,28 +59,30 @@
 }
 
 .sidebar-close:hover {
-  color: #7aa8c8;
+  color: #e8a840;
 }
 
 /* ── Sectie ── */
 .sidebar-section {
   padding: 20px;
-  border-bottom: 1px solid #0f2035;
+  border-bottom: 1px solid #2a1a08;
 }
 
 .sidebar-section-title {
-  font-size: 11px;
-  letter-spacing: 1.5px;
+  font-size: 10px;
+  letter-spacing: 2px;
   text-transform: uppercase;
-  color: #3a5068;
+  color: #6a4820;
   margin-bottom: 8px;
+  font-family: 'Cinzel', Georgia, serif;
 }
 
 .sidebar-section-desc {
   font-size: 12px;
-  color: #2a4060;
-  line-height: 1.6;
+  color: #5a3a1a;
+  line-height: 1.7;
   margin-bottom: 14px;
+  font-style: italic;
 }
 
 .sidebar-picker {
@@ -93,30 +96,30 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  background: #0d1f30;
-  border: 1px solid #1a3050;
+  background: #261808;
+  border: 1px solid #3a2410;
   border-radius: 20px;
   padding: 5px 12px 5px 8px;
   font-size: 13px;
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
-  font-family: inherit;
+  font-family: 'Lora', Georgia, serif;
   text-align: left;
 }
 
 .char-chip:hover {
-  border-color: #2a4060;
-  background: #112235;
+  border-color: #5a3a1a;
+  background: #2e1e0a;
 }
 
 .char-chip.active {
-  border-color: var(--char-color, #4fc3f7);
-  background: color-mix(in srgb, var(--char-color, #4fc3f7) 12%, #0d1f30);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--char-color, #4fc3f7) 25%, transparent);
+  border-color: var(--char-color, #e8a840);
+  background: color-mix(in srgb, var(--char-color, #e8a840) 12%, #261808);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--char-color, #e8a840) 25%, transparent);
 }
 
 .char-chip.active .char-name {
-  color: var(--char-color, #4fc3f7);
+  color: var(--char-color, #e8a840);
 }
 
 .char-dot {
@@ -127,7 +130,7 @@
 }
 
 .char-name {
-  color: #a8c0d8;
+  color: #c0966a;
 }
 
 /* ── Bevestigingsprompt ── */
@@ -135,8 +138,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: color-mix(in srgb, var(--char-color, #ef5350) 10%, #0d1f30);
-  border: 1px solid var(--char-color, #ef5350);
+  background: color-mix(in srgb, var(--char-color, #e05a30) 10%, #261808);
+  border: 1px solid var(--char-color, #e05a30);
   border-radius: 20px;
   padding: 5px 8px 5px 10px;
   animation: confirmAppear 0.15s ease;
@@ -157,7 +160,7 @@
 .confirm-text {
   flex: 1;
   font-size: 12px;
-  color: var(--char-color, #ef5350);
+  color: var(--char-color, #e05a30);
 }
 
 .confirm-yes,
@@ -166,20 +169,20 @@
   border-radius: 12px;
   padding: 3px 10px;
   font-size: 11px;
-  font-family: inherit;
+  font-family: 'Lora', Georgia, serif;
   cursor: pointer;
   font-weight: 600;
   transition: background 0.15s;
 }
 
 .confirm-yes {
-  background: #3a0f0f;
-  color: #ef5350;
+  background: #2e0e06;
+  color: #e05a30;
 }
-.confirm-yes:hover { background: #5a1515; }
+.confirm-yes:hover { background: #4a1510; }
 
 .confirm-no {
-  background: #0d1f30;
-  color: #4a6a8a;
+  background: #261808;
+  color: #7a5a38;
 }
-.confirm-no:hover { background: #1a3050; }
+.confirm-no:hover { background: #321e0c; }
