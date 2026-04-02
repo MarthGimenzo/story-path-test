@@ -2,6 +2,8 @@ export interface Character {
   id: string;
   name: string;
   color: string;
+  avatar?: string;       // base64 data-URL
+  description?: string;
 }
 
 export interface StoryNode {
@@ -12,6 +14,8 @@ export interface StoryNode {
   col: number;
   row: number;
   type: 'start' | 'encounter' | 'dungeon' | 'event' | 'split';
+  /** IDs van de karakters die zich aansluiten bij de bestaande groep (voor visuele pijl). */
+  joiners?: string[];
 }
 
 export interface StoryEdge {

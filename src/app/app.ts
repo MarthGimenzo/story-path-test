@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { CharacterPanel } from './character-panel/character-panel';
 import { SettingsSidebar } from './settings-sidebar/settings-sidebar';
 import { StoryCanvas } from './story-canvas/story-canvas';
 import { Character, StoryEdge, StoryNode } from './story.types';
@@ -7,10 +8,14 @@ import { Character, StoryEdge, StoryNode } from './story.types';
 type NodeOverrides = Record<string, { x: number; y: number }>;
 
 interface Snapshot {
-  starters: string[];
-  nodes: StoryNode[];
-  edges: StoryEdge[];
-  overrides: NodeOverrides;
+  starters:    string[];
+  nodes:       StoryNode[];
+  edges:       StoryEdge[];
+  overrides:   NodeOverrides;
+}
+
+interface ProjectData extends Snapshot {
+  characters: Character[];
 }
 
 @Component({
@@ -18,12 +23,14 @@ interface Snapshot {
   templateUrl: './app.html',
   styleUrl: './app.css',
   standalone: true,
-  imports: [SettingsSidebar, StoryCanvas, FormsModule],
+  imports: [SettingsSidebar, StoryCanvas, CharacterPanel, FormsModule],
 })
 export class App implements OnInit {
   settingsOpen    = false;
+  charactersOpen  = false;
   nodeOverrides: NodeOverrides = {};
-  selectedStarters = new Set<string>(['jouke', 'thijs', 'ilva', 'douwe']);
+  selectedStarters = new Set<string>();
+  characters: Character[] = [];
 
   // ── Undo / Redo ───────────────────────────────────────────────────────────
   private history: Snapshot[] = [];
@@ -77,7 +84,7 @@ export class App implements OnInit {
   saveLabel = 'Opslaan';
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
 
-  private getAllProjects(): Record<string, Snapshot> {
+  private getAllProjects(): Record<string, ProjectData> {
     try { return JSON.parse(localStorage.getItem(this.PROJECTS_KEY) ?? '{}'); }
     catch { return {}; }
   }
@@ -94,7 +101,7 @@ export class App implements OnInit {
         const d = JSON.parse(legacy) as Snapshot;
         if (Array.isArray(d.starters)) {
           const all = this.getAllProjects();
-          all['Mijn verhaal'] = d;
+          all['Mijn verhaal'] = { ...d, characters: [] };
           localStorage.setItem(this.PROJECTS_KEY, JSON.stringify(all));
           localStorage.removeItem('story-path-save');
         }
@@ -107,6 +114,7 @@ export class App implements OnInit {
     if (name && all[name]) {
       this.currentProject = name;
       const snap = all[name];
+      this.characters      = snap.characters ?? [];
       this.selectedStarters = new Set(snap.starters ?? []);
       this.extraNodes    = snap.nodes ?? [];
       this.extraEdges    = snap.edges ?? [];
@@ -118,10 +126,11 @@ export class App implements OnInit {
   save(): void {
     const all = this.getAllProjects();
     all[this.currentProject] = {
-      starters:  [...this.selectedStarters],
-      nodes:     this.extraNodes,
-      edges:     this.extraEdges,
-      overrides: this.nodeOverrides,
+      characters: this.characters,
+      starters:   [...this.selectedStarters],
+      nodes:      this.extraNodes,
+      edges:      this.extraEdges,
+      overrides:  this.nodeOverrides,
     };
     localStorage.setItem(this.PROJECTS_KEY, JSON.stringify(all));
     localStorage.setItem(this.CURRENT_KEY, this.currentProject);
@@ -134,11 +143,12 @@ export class App implements OnInit {
   loadProject(name: string): void {
     const snap = this.getAllProjects()[name];
     if (!snap) return;
-    this.currentProject = name;
+    this.currentProject   = name;
+    this.characters       = snap.characters ?? [];
     this.selectedStarters = new Set(snap.starters ?? []);
-    this.extraNodes    = snap.nodes ?? [];
-    this.extraEdges    = snap.edges ?? [];
-    this.nodeOverrides = snap.overrides ?? {};
+    this.extraNodes       = snap.nodes ?? [];
+    this.extraEdges       = snap.edges ?? [];
+    this.nodeOverrides    = snap.overrides ?? {};
     this.history = [];
     this.future  = [];
     localStorage.setItem(this.CURRENT_KEY, name);
@@ -159,14 +169,23 @@ export class App implements OnInit {
   }
 
   newProject(): void {
-    this.currentProject = 'Nieuw verhaal';
-    this.selectedStarters = new Set(['jouke', 'thijs', 'ilva', 'douwe']);
-    this.extraNodes    = [];
-    this.extraEdges    = [];
-    this.nodeOverrides = {};
-    this.history = [];
-    this.future  = [];
-    this.projectsOpen = false;
+    this.currentProject   = 'Nieuw verhaal';
+    this.characters       = [];
+    this.selectedStarters = new Set();
+    this.extraNodes       = [];
+    this.extraEdges       = [];
+    this.nodeOverrides    = {};
+    this.history          = [];
+    this.future           = [];
+    this.projectsOpen     = false;
+  }
+
+  onCharactersChanged(chars: Character[]): void {
+    this.characters = chars;
+    // Verwijder starters die niet meer bestaan
+    this.selectedStarters = new Set(
+      [...this.selectedStarters].filter(id => chars.some(c => c.id === id))
+    );
   }
 
   onNodePositioned(event: { nodeId: string; x: number; y: number }): void {
@@ -174,24 +193,6 @@ export class App implements OnInit {
     this.nodeOverrides = { ...this.nodeOverrides, [event.nodeId]: { x: event.x, y: event.y } };
   }
 
-  readonly characters: Character[] = [
-    { id: 'jouke',    name: 'Jouke',    color: '#4fc3f7' },
-    { id: 'thijs',    name: 'Thijs',    color: '#81c784' },
-    { id: 'berber',   name: 'Berber',   color: '#f06292' },
-    { id: 'diederik', name: 'Diederik', color: '#ffb74d' },
-    { id: 'niels',    name: 'Niels',    color: '#4db6ac' },
-    { id: 'dieuwke',  name: 'Dieuwke',  color: '#ce93d8' },
-    { id: 'rik',      name: 'Rik',      color: '#ef5350' },
-    { id: 'lisa',     name: 'Lisa',     color: '#fff176' },
-    { id: 'doetie',   name: 'Doetie',   color: '#80cbc4' },
-    { id: 'boyd',     name: 'Boyd',     color: '#a5d6a7' },
-    { id: 'ilva',     name: 'Ilva',     color: '#ff8a65' },
-    { id: 'helga',    name: 'Helga',    color: '#b39ddb' },
-    { id: 'dietie',   name: 'Dietie',   color: '#80deea' },
-    { id: 'janne',    name: 'Janne',    color: '#ffcc02' },
-    { id: 'pascal',   name: 'Pascal',   color: '#f48fb1' },
-    { id: 'douwe',    name: 'Douwe',    color: '#90caf9' },
-  ];
 
   extraNodes: StoryNode[] = [];
   extraEdges: StoryEdge[] = [];
@@ -251,6 +252,11 @@ export class App implements OnInit {
     return count === 1 ? 'ontmoet' : 'ontmoeten';
   }
 
+  /** "sluit zich aan bij" (enkelvoud) of "sluiten zich aan bij" (meervoud) */
+  private joinVerb(count: number): string {
+    return count === 1 ? 'sluit zich aan bij' : 'sluiten zich aan bij';
+  }
+
   /** Eén nieuw karakter ontmoet de groep → volledige groep + nieuw karakter. */
   onEncounterAdded(event: { parentId: string; charId: string }): void {
     this.snapshot();
@@ -265,6 +271,7 @@ export class App implements OnInit {
     const newNode: StoryNode = {
       id: `enc-${Date.now()}`,
       characters: [...parent.characters, char.id],
+      joiners: [char.id],
       label: 'Ontmoeting',
       description: `${this.party(parent.characters)} ${this.meetVerb(parent.characters.length)} ${char.name}`,
       col: parent.col,
@@ -414,6 +421,7 @@ export class App implements OnInit {
     const arriveNode: StoryNode = {
       id: `arrive-${ts}`,
       characters: newChars,
+      joiners: [charId],
       label: 'Aankomst',
       description: `${this.party(toNode.characters)} ${this.meetVerb(toNode.characters.length)} ${char.name}`,
       col: toNode.col,
@@ -447,8 +455,9 @@ export class App implements OnInit {
     const newNode: StoryNode = {
       id: `merge-${Date.now()}`,
       characters: mergedChars,
+      joiners: a.characters,
       label: 'Samenvoeging',
-      description: `${this.party(a.characters)} sluiten zich aaneen met ${this.party(b.characters)}`,
+      description: `${this.party(a.characters)} ${this.joinVerb(a.characters.length)} ${this.party(b.characters)}`,
       col: mergedCol,
       row: insertRow,
       type: 'encounter',

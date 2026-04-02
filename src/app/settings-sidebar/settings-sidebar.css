@@ -131,6 +131,39 @@
 
 .char-name {
   color: #c0966a;
+  flex: 1;
+}
+
+.char-avatar-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.char-chip-remove {
+  color: #6a3a1a;
+  font-size: 10px;
+  flex-shrink: 0;
+  opacity: 0.7;
+  transition: color 0.15s, opacity 0.15s;
+}
+.char-chip:hover .char-chip-remove {
+  color: #e05a30;
+  opacity: 1;
+}
+
+.char-chip-add {
+  color: #5a3a1a;
+  font-size: 10px;
+  flex-shrink: 0;
+  opacity: 0.6;
+  transition: color 0.15s, opacity 0.15s;
+}
+.char-chip:hover .char-chip-add {
+  color: #e8a840;
+  opacity: 1;
 }
 
 /* ── Bevestigingsprompt ── */

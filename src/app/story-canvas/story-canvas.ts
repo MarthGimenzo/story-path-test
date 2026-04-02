@@ -182,10 +182,10 @@ export class StoryCanvas implements OnChanges, AfterViewInit, OnDestroy {
   readonly PADDING_TOP = 60;   // ruimte boven de eerste rij
 
   readonly DOTS_PER_ROW  = 6;
-  readonly DOT_R         = 8;   // straal bondgenoot-dot
-  readonly DOT_R_LEADER  = 10;  // straal aanvoerder-dot
-  readonly DOT_GAP       = 5;
-  readonly DOT_AREA_TOP  = 54;  // Y waar dots beginnen (relatief aan node top)
+  readonly CHAR_SIZE     = 22;   // breedte/hoogte van het avatar-vierkant
+  readonly CHAR_GAP      = 5;    // ruimte tussen vierkanten
+  readonly CHAR_NAME_H   = 11;   // ruimte voor naam onder vierkant
+  readonly JOIN_ARROW_W  = 26;   // breedte van het pijl-gebied tussen groepen
 
   // ── Pan/sleep state ───────────────────────────────────────────────────────
   panX = 40;
@@ -399,12 +399,64 @@ export class StoryCanvas implements OnChanges, AfterViewInit, OnDestroy {
     return lines;
   }
 
+  // ── Join-layout helpers ────────────────────────────────────────────────────
+  /** True als de node een speciale joiner→groep weergave krijgt. */
+  hasJoinLayout(node: StoryNode): boolean {
+    return (node.type === 'encounter') &&
+           !!node.joiners?.length &&
+           node.joiners.length < node.characters.length;
+  }
+
+  getJoinerIds(node: StoryNode): string[] {
+    return node.joiners ?? [];
+  }
+
+  getReceiverIds(node: StoryNode): string[] {
+    const j = new Set(node.joiners ?? []);
+    return node.characters.filter(id => !j.has(id));
+  }
+
+  /** Startpunt X van de complete join-rij (links uitgelijnd). */
+  private joinRowStartX(node: StoryNode): number {
+    const j = this.getJoinerIds(node).length;
+    const r = this.getReceiverIds(node).length;
+    const w = j * (this.CHAR_SIZE + this.CHAR_GAP) - this.CHAR_GAP
+            + this.JOIN_ARROW_W
+            + r * (this.CHAR_SIZE + this.CHAR_GAP) - this.CHAR_GAP;
+    return this.NODE_WIDTH / 2 - w / 2;
+  }
+
+  /** Midden-X van een joiner-slot (0-gebaseerde index). */
+  getJoinerCx(node: StoryNode, i: number): number {
+    return this.joinRowStartX(node) + i * (this.CHAR_SIZE + this.CHAR_GAP) + this.CHAR_SIZE / 2;
+  }
+
+  /** Midden-X van een receiver-slot (0-gebaseerde index). */
+  getReceiverCx(node: StoryNode, i: number): number {
+    const jW = this.getJoinerIds(node).length * (this.CHAR_SIZE + this.CHAR_GAP) - this.CHAR_GAP;
+    return this.joinRowStartX(node) + jW + this.JOIN_ARROW_W + i * (this.CHAR_SIZE + this.CHAR_GAP) + this.CHAR_SIZE / 2;
+  }
+
+  /** X-midden van de pijl tussen joiners en receivers. */
+  getJoinArrowCx(node: StoryNode): number {
+    const jW = this.getJoinerIds(node).length * (this.CHAR_SIZE + this.CHAR_GAP) - this.CHAR_GAP;
+    return this.joinRowStartX(node) + jW + this.JOIN_ARROW_W / 2;
+  }
+
+  /** Top-Y van de join-rij. */
+  getJoinRowY(node: StoryNode): number {
+    return this.getNodeHeight(node) - 16 - this.CHAR_SIZE;
+  }
+
   // ── Node hoogte (dynamisch op basis van tekst + groepsgrootte) ─────────────
   getNodeHeight(node: StoryNode): number {
     const descLines = this.getDescriptionLines(node.description).length;
-    const dotRows   = Math.ceil(node.characters.length / this.DOTS_PER_ROW);
-    const DOT_STEP  = this.DOT_R * 2 + this.DOT_GAP;
-    return 30 + descLines * 14 + 10 + dotRows * DOT_STEP + 14;
+    const rowStep   = this.CHAR_SIZE + this.CHAR_GAP + this.CHAR_NAME_H;
+    // Join-layout gebruikt altijd 1 rij; normaal grid berekent aantal rijen
+    const charRows  = this.hasJoinLayout(node)
+      ? 1
+      : Math.ceil(node.characters.length / this.DOTS_PER_ROW);
+    return 38 + descLines * 14 + 10 + charRows * rowStep + 16;
   }
 
   // ── Positie berekeningen ───────────────────────────────────────────────────
@@ -439,30 +491,32 @@ export class StoryCanvas implements OnChanges, AfterViewInit, OnDestroy {
     return row === 0 ? 'BEGIN' : `H.${row}`;
   }
 
-  // ── Dot posities ───────────────────────────────────────────────────────────
+  // ── Avatar-vierkant posities ───────────────────────────────────────────────
+  /** Geeft het midden-X van het avatar-vierkant terug. */
   getDotCx(index: number, total: number): number {
-    const col       = index % this.DOTS_PER_ROW;
-    const rowIndex  = Math.floor(index / this.DOTS_PER_ROW);
-    const totalRows = Math.ceil(total / this.DOTS_PER_ROW);
+    const col        = index % this.DOTS_PER_ROW;
+    const rowIndex   = Math.floor(index / this.DOTS_PER_ROW);
+    const totalRows  = Math.ceil(total / this.DOTS_PER_ROW);
     const charsInRow = rowIndex === totalRows - 1
       ? total - rowIndex * this.DOTS_PER_ROW
       : this.DOTS_PER_ROW;
-    const step      = this.DOT_R * 2 + this.DOT_GAP;
-    const rowWidth  = charsInRow * step - this.DOT_GAP;
-    return this.NODE_WIDTH / 2 - rowWidth / 2 + this.DOT_R + col * step;
+    const rowWidth   = charsInRow * this.CHAR_SIZE + (charsInRow - 1) * this.CHAR_GAP;
+    return this.NODE_WIDTH / 2 - rowWidth / 2 + this.CHAR_SIZE / 2 + col * (this.CHAR_SIZE + this.CHAR_GAP);
   }
 
-  getDotR(index: number): number {
-    return index === 0 ? this.DOT_R_LEADER : this.DOT_R;
-  }
-
+  /** Geeft de top-Y van het avatar-vierkant terug. */
   getDotCy(index: number, total: number, node: StoryNode): number {
     const rowIndex  = Math.floor(index / this.DOTS_PER_ROW);
     const totalRows = Math.ceil(total / this.DOTS_PER_ROW);
     const h         = this.getNodeHeight(node);
-    const step      = this.DOT_R * 2 + this.DOT_GAP;
-    // Dots van onder naar boven: rij 0 = onderste rij
-    return h - 10 - (totalRows - 1 - rowIndex) * step - this.DOT_R;
+    const rowStep   = this.CHAR_SIZE + this.CHAR_GAP + this.CHAR_NAME_H;
+    // Rijen van onder naar boven: rij 0 = onderste rij
+    return h - 16 - (totalRows - 1 - rowIndex) * rowStep - this.CHAR_SIZE;
+  }
+
+  /** Uniek id voor SVG clipPath per karakter-slot. */
+  getClipId(nodeId: string, index: number): string {
+    return 'ac-' + nodeId.replace(/[^a-zA-Z0-9]/g, '') + '-' + index;
   }
 
   // ── Edges ──────────────────────────────────────────────────────────────────

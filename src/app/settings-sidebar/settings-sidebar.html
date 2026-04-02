@@ -4,46 +4,76 @@
 
 <aside class="sidebar" [class.open]="open">
   <div class="sidebar-header">
-    <span class="sidebar-title">Instellingen</span>
+    <span class="sidebar-title"><i class="fa-solid fa-map"></i> Verhaallijnen</span>
     <button class="sidebar-close" (click)="closed.emit()" title="Sluiten">
       <i class="fa-solid fa-xmark"></i>
     </button>
   </div>
 
-  <div class="sidebar-section">
-    <h3 class="sidebar-section-title">Startpunten</h3>
-    <p class="sidebar-section-desc">
-      Kies met welke karakters de game kan beginnen.
-      Elke selectie vormt een eigen startverhaallijn.
-    </p>
-    <div class="sidebar-picker">
-      @for (char of characters; track char.id) {
-
-        @if (pendingRemovalId === char.id) {
-          <!-- Bevestigingsprompt -->
-          <div class="confirm-row" [style.--char-color]="char.color">
-            <span class="confirm-dot" [style.background]="char.color"></span>
-            <span class="confirm-text">{{ char.name }} verwijderen?</span>
-            <button class="confirm-yes" (click)="confirmRemoval()">
-              <i class="fa-solid fa-check"></i> Ja
-            </button>
-            <button class="confirm-no"  (click)="cancelRemoval()">
-              <i class="fa-solid fa-xmark"></i> Nee
-            </button>
-          </div>
-        } @else {
-          <button
-            class="char-chip"
-            [class.active]="selectedStarters.has(char.id)"
-            [style.--char-color]="char.color"
-            (click)="handleChipClick(char.id)"
-          >
-            <span class="char-dot" [style.background]="char.color"></span>
-            <span class="char-name">{{ char.name }}</span>
-          </button>
-        }
-
-      }
+  @if (characters.length === 0) {
+    <div class="sidebar-section">
+      <p class="sidebar-section-desc" style="text-align:center; padding: 12px 0;">
+        <i class="fa-solid fa-masks-theater" style="font-size:22px; color:#5a3a1a; display:block; margin-bottom:10px;"></i>
+        Voeg eerst karakters toe via de knop <strong style="color:#9a7248">Karakters</strong> in de menubalk.
+      </p>
     </div>
-  </div>
+  } @else {
+
+    <!-- Actieve verhaallijnen -->
+    @if (activeStarters.length > 0) {
+      <div class="sidebar-section">
+        <h3 class="sidebar-section-title">Actief</h3>
+        <div class="sidebar-picker">
+          @for (char of activeStarters; track char.id) {
+            @if (pendingRemovalId === char.id) {
+              <div class="confirm-row" [style.--char-color]="char.color">
+                <span class="confirm-dot" [style.background]="char.color"></span>
+                <span class="confirm-text">Verhaallijn verwijderen?</span>
+                <button class="confirm-yes" (click)="confirmRemoval()">
+                  <i class="fa-solid fa-check"></i> Ja
+                </button>
+                <button class="confirm-no" (click)="cancelRemoval()">
+                  <i class="fa-solid fa-xmark"></i> Nee
+                </button>
+              </div>
+            } @else {
+              <button class="char-chip active" [style.--char-color]="char.color"
+                      (click)="handleChipClick(char.id)">
+                @if (char.avatar) {
+                  <img [src]="char.avatar" class="char-avatar-thumb" alt=""/>
+                } @else {
+                  <span class="char-dot" [style.background]="char.color"></span>
+                }
+                <span class="char-name">{{ char.name }}</span>
+                <span class="char-chip-remove"><i class="fa-solid fa-xmark"></i></span>
+              </button>
+            }
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Beschikbare karakters om toe te voegen -->
+    @if (inactiveChars.length > 0) {
+      <div class="sidebar-section">
+        <h3 class="sidebar-section-title">Voeg verhaallijn toe</h3>
+        <p class="sidebar-section-desc">Klik op een karakter om er een verhaallijn voor te starten.</p>
+        <div class="sidebar-picker">
+          @for (char of inactiveChars; track char.id) {
+            <button class="char-chip" [style.--char-color]="char.color"
+                    (click)="toggled.emit(char.id)">
+              @if (char.avatar) {
+                <img [src]="char.avatar" class="char-avatar-thumb" alt=""/>
+              } @else {
+                <span class="char-dot" [style.background]="char.color"></span>
+              }
+              <span class="char-name">{{ char.name }}</span>
+              <span class="char-chip-add"><i class="fa-solid fa-plus"></i></span>
+            </button>
+          }
+        </div>
+      </div>
+    }
+
+  }
 </aside>

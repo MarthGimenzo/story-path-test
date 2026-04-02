@@ -147,46 +147,181 @@
         @for (line of getDescriptionLines(node.description); track $index; let i = $index) {
           <text
             [attr.x]="NODE_WIDTH / 2"
-            [attr.y]="38 + i * 14"
+            [attr.y]="46 + i * 14"
             text-anchor="middle" fill="#c0966a"
             font-size="11" font-family="Lora, Georgia, serif"
           >{{ line }}</text>
         }
 
-        <!-- Karakter-dots: volledige groep -->
+        <!-- ── Join-weergave: [joiners] → [receivers] ── -->
+        @if (hasJoinLayout(node)) {
+
+          <!-- Pijl -->
+          <text
+            [attr.x]="getJoinArrowCx(node)"
+            [attr.y]="getJoinRowY(node) + CHAR_SIZE / 2 + 4"
+            text-anchor="middle" fill="#c0966a"
+            font-size="14" font-family="serif" opacity="0.8"
+          >→</text>
+
+          <!-- Joiners -->
+          @for (charId of getJoinerIds(node); track charId; let i = $index) {
+            <g [class.dot-interactive]="isDotInteractive(node)"
+               (click)="isDotInteractive(node) ? openCharPicker(node.id, charId, $event) : null">
+              <defs>
+                <clipPath [attr.id]="getClipId(node.id, 900 + i)">
+                  <rect [attr.x]="getJoinerCx(node, i) - CHAR_SIZE / 2"
+                        [attr.y]="getJoinRowY(node)"
+                        [attr.width]="CHAR_SIZE" [attr.height]="CHAR_SIZE" rx="4"/>
+                </clipPath>
+              </defs>
+              <rect [attr.x]="getJoinerCx(node, i) - CHAR_SIZE / 2"
+                    [attr.y]="getJoinRowY(node)"
+                    [attr.width]="CHAR_SIZE" [attr.height]="CHAR_SIZE"
+                    rx="4" [attr.fill]="getCharacter(charId)?.color ?? '#8a7060'" opacity="0.88"/>
+              @if (getCharacter(charId)?.avatar) {
+                <image [attr.x]="getJoinerCx(node, i) - CHAR_SIZE / 2"
+                       [attr.y]="getJoinRowY(node)"
+                       [attr.width]="CHAR_SIZE" [attr.height]="CHAR_SIZE"
+                       [attr.href]="getCharacter(charId)!.avatar"
+                       preserveAspectRatio="xMidYMid slice"
+                       [attr.clip-path]="'url(#' + getClipId(node.id, 900 + i) + ')'"/>
+              } @else {
+                <text [attr.x]="getJoinerCx(node, i)"
+                      [attr.y]="getJoinRowY(node) + CHAR_SIZE * 0.68"
+                      text-anchor="middle" fill="rgba(0,0,0,0.65)"
+                      font-size="11" font-weight="700" font-family="Cinzel, Georgia, serif"
+                >{{ (getCharacter(charId)?.name ?? '?')[0] }}</text>
+              }
+              <text [attr.x]="getJoinerCx(node, i)"
+                    [attr.y]="getJoinRowY(node) + CHAR_SIZE + 9"
+                    text-anchor="middle" fill="#c0966a"
+                    font-size="7" font-family="Lora, Georgia, serif"
+              >{{ (getCharacter(charId)?.name ?? '').substring(0, 6) }}</text>
+              <title>{{ getCharacter(charId)?.name }}</title>
+            </g>
+          }
+
+          <!-- Receivers -->
+          @for (charId of getReceiverIds(node); track charId; let i = $index) {
+            <g [class.dot-interactive]="isDotInteractive(node)"
+               (click)="isDotInteractive(node) ? openCharPicker(node.id, charId, $event) : null">
+              <defs>
+                <clipPath [attr.id]="getClipId(node.id, 950 + i)">
+                  <rect [attr.x]="getReceiverCx(node, i) - CHAR_SIZE / 2"
+                        [attr.y]="getJoinRowY(node)"
+                        [attr.width]="CHAR_SIZE" [attr.height]="CHAR_SIZE" rx="4"/>
+                </clipPath>
+              </defs>
+              <!-- Aanvoerder-ring op eerste receiver -->
+              @if (i === 0) {
+                <rect [attr.x]="getReceiverCx(node, i) - CHAR_SIZE / 2 - 2"
+                      [attr.y]="getJoinRowY(node) - 2"
+                      [attr.width]="CHAR_SIZE + 4" [attr.height]="CHAR_SIZE + 4"
+                      rx="6" fill="none"
+                      [attr.stroke]="getCharacter(charId)?.color ?? '#e8a840'"
+                      stroke-width="1.5" opacity="0.6"/>
+              }
+              <rect [attr.x]="getReceiverCx(node, i) - CHAR_SIZE / 2"
+                    [attr.y]="getJoinRowY(node)"
+                    [attr.width]="CHAR_SIZE" [attr.height]="CHAR_SIZE"
+                    rx="4" [attr.fill]="getCharacter(charId)?.color ?? '#8a7060'" opacity="0.88"/>
+              @if (getCharacter(charId)?.avatar) {
+                <image [attr.x]="getReceiverCx(node, i) - CHAR_SIZE / 2"
+                       [attr.y]="getJoinRowY(node)"
+                       [attr.width]="CHAR_SIZE" [attr.height]="CHAR_SIZE"
+                       [attr.href]="getCharacter(charId)!.avatar"
+                       preserveAspectRatio="xMidYMid slice"
+                       [attr.clip-path]="'url(#' + getClipId(node.id, 950 + i) + ')'"/>
+              } @else {
+                <text [attr.x]="getReceiverCx(node, i)"
+                      [attr.y]="getJoinRowY(node) + CHAR_SIZE * 0.68"
+                      text-anchor="middle" fill="rgba(0,0,0,0.65)"
+                      font-size="11" font-weight="700" font-family="Cinzel, Georgia, serif"
+                >{{ (getCharacter(charId)?.name ?? '?')[0] }}</text>
+              }
+              <text [attr.x]="getReceiverCx(node, i)"
+                    [attr.y]="getJoinRowY(node) + CHAR_SIZE + 9"
+                    text-anchor="middle" fill="#c0966a"
+                    font-size="7" font-family="Lora, Georgia, serif"
+              >{{ (getCharacter(charId)?.name ?? '').substring(0, 6) }}</text>
+              <title>{{ getCharacter(charId)?.name }}</title>
+            </g>
+          }
+
+        } @else {
+
+        <!-- Normale karakter-avatars: vierkantjes met foto of letter-fallback + naam -->
         @for (charId of node.characters; track charId; let i = $index) {
           <g
             [class.dot-interactive]="isDotInteractive(node)"
             (click)="isDotInteractive(node) ? openCharPicker(node.id, charId, $event) : null"
           >
-            <!-- Aanvoerder-ring (index 0) -->
+            <defs>
+              <clipPath [attr.id]="getClipId(node.id, i)">
+                <rect
+                  [attr.x]="getDotCx(i, node.characters.length) - CHAR_SIZE / 2"
+                  [attr.y]="getDotCy(i, node.characters.length, node)"
+                  [attr.width]="CHAR_SIZE" [attr.height]="CHAR_SIZE"
+                  rx="4"/>
+              </clipPath>
+            </defs>
+
+            <!-- Aanvoerder-ring -->
             @if (i === 0) {
-              <circle
-                [attr.cx]="getDotCx(i, node.characters.length)"
-                [attr.cy]="getDotCy(i, node.characters.length, node)"
-                [attr.r]="DOT_R_LEADER + 4"
-                fill="none"
-                [attr.stroke]="getCharacter(charId)?.color ?? '#4fc3f7'"
-                stroke-width="1.5"
-                opacity="0.4"
+              <rect
+                [attr.x]="getDotCx(i, node.characters.length) - CHAR_SIZE / 2 - 2"
+                [attr.y]="getDotCy(i, node.characters.length, node) - 2"
+                [attr.width]="CHAR_SIZE + 4" [attr.height]="CHAR_SIZE + 4"
+                rx="6" fill="none"
+                [attr.stroke]="getCharacter(charId)?.color ?? '#e8a840'"
+                stroke-width="1.5" opacity="0.6"
               />
             }
-            <circle
-              [attr.cx]="getDotCx(i, node.characters.length)"
-              [attr.cy]="getDotCy(i, node.characters.length, node)"
-              [attr.r]="getDotR(i)"
-              [attr.fill]="getCharacter(charId)?.color ?? '#546e7a'"
-              opacity="0.95"
+
+            <!-- Gekleurde achtergrond -->
+            <rect
+              [attr.x]="getDotCx(i, node.characters.length) - CHAR_SIZE / 2"
+              [attr.y]="getDotCy(i, node.characters.length, node)"
+              [attr.width]="CHAR_SIZE" [attr.height]="CHAR_SIZE"
+              rx="4"
+              [attr.fill]="getCharacter(charId)?.color ?? '#8a7060'"
+              opacity="0.88"
             />
+
+            <!-- Avatar afbeelding (indien aanwezig) -->
+            @if (getCharacter(charId)?.avatar) {
+              <image
+                [attr.x]="getDotCx(i, node.characters.length) - CHAR_SIZE / 2"
+                [attr.y]="getDotCy(i, node.characters.length, node)"
+                [attr.width]="CHAR_SIZE" [attr.height]="CHAR_SIZE"
+                [attr.href]="getCharacter(charId)!.avatar"
+                preserveAspectRatio="xMidYMid slice"
+                [attr.clip-path]="'url(#' + getClipId(node.id, i) + ')'"
+              />
+            } @else {
+              <!-- Letter-fallback -->
+              <text
+                [attr.x]="getDotCx(i, node.characters.length)"
+                [attr.y]="getDotCy(i, node.characters.length, node) + CHAR_SIZE * 0.68"
+                text-anchor="middle" fill="rgba(0,0,0,0.65)"
+                font-size="11" font-weight="700" font-family="Cinzel, Georgia, serif"
+              >{{ (getCharacter(charId)?.name ?? '?')[0] }}</text>
+            }
+
+            <!-- Naam onder het vierkant -->
             <text
               [attr.x]="getDotCx(i, node.characters.length)"
-              [attr.y]="getDotCy(i, node.characters.length, node) + 4"
-              text-anchor="middle" fill="#000"
-              font-size="9" font-weight="bold" font-family="Arial, sans-serif"
-            >{{ (getCharacter(charId)?.name ?? '')[0] }}</text>
+              [attr.y]="getDotCy(i, node.characters.length, node) + CHAR_SIZE + 9"
+              text-anchor="middle" fill="#c0966a"
+              font-size="7" font-family="Lora, Georgia, serif"
+            >{{ (getCharacter(charId)?.name ?? '').substring(0, 6) }}</text>
+
             <title>{{ getCharacter(charId)?.name }}</title>
           </g>
         }
+
+        } <!-- einde @else normale layout -->
 
         <!-- Volgende stap toevoegen (onder node) — alleen op leaf nodes -->
         @if (isLeafNode(node)) {

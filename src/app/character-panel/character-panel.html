@@ -1,0 +1,78 @@
+@if (open) {
+  <div class="cp-backdrop" (click)="closed.emit()"></div>
+}
+
+<aside class="cp-panel" [class.open]="open">
+
+  <div class="cp-header">
+    <span class="cp-title"><i class="fa-solid fa-masks-theater"></i> Karakters</span>
+    <div class="cp-header-actions">
+      <label class="cp-action-btn" title="Karakterlijst importeren (.json)">
+        <i class="fa-solid fa-file-import"></i> Importeer
+        <input type="file" accept=".json" (change)="onImportFile($event)" style="display:none">
+      </label>
+      <button class="cp-action-btn" (click)="exportCharacters()" title="Karakterlijst exporteren als .json">
+        <i class="fa-solid fa-file-export"></i> Exporteer
+      </button>
+    </div>
+    <button class="cp-close" (click)="closed.emit()" title="Sluiten">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+  </div>
+
+  <div class="cp-list">
+    @if (characters.length === 0) {
+      <p class="cp-empty">Nog geen karakters.<br>Voeg er hieronder een toe.</p>
+    }
+
+    @for (char of characters; track char.id) {
+      <div class="cp-row">
+
+        <!-- Avatar -->
+        <div class="cp-avatar-wrap">
+          <label class="cp-avatar-label" [title]="'Afbeelding uploaden'">
+            @if (char.avatar) {
+              <img [src]="char.avatar" class="cp-avatar-img" alt=""/>
+            } @else {
+              <span class="cp-avatar-placeholder" [style.background]="char.color">
+                {{ char.name[0] || '?' }}
+              </span>
+            }
+            <span class="cp-avatar-overlay"><i class="fa-solid fa-camera"></i></span>
+            <input type="file" accept="image/*" (change)="onAvatarChange(char, $event)" style="display:none">
+          </label>
+          @if (char.avatar) {
+            <button class="cp-avatar-remove" (click)="removeAvatar(char)" title="Afbeelding verwijderen">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          }
+        </div>
+
+        <!-- Velden -->
+        <div class="cp-fields">
+          <div class="cp-name-row">
+            <input class="cp-name-input" [(ngModel)]="char.name" (blur)="emit()"
+                   placeholder="Naam karakter" maxlength="40"/>
+            <input type="color" class="cp-color-input" [(ngModel)]="char.color"
+                   (change)="emit()" [title]="'Kleur van ' + char.name"/>
+          </div>
+          <textarea class="cp-desc-input" [(ngModel)]="char.description" (blur)="emit()"
+                    placeholder="Beschrijving…" rows="2"></textarea>
+        </div>
+
+        <!-- Verwijder -->
+        <button class="cp-delete" (click)="removeCharacter(char.id)" [title]="'Verwijder ' + char.name">
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
+
+      </div>
+    }
+  </div>
+
+  <div class="cp-footer">
+    <button class="cp-add-btn" (click)="addCharacter()">
+      <i class="fa-solid fa-user-plus"></i> Nieuw karakter
+    </button>
+  </div>
+
+</aside>

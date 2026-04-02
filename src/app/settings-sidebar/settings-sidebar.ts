@@ -15,17 +15,19 @@ export class SettingsSidebar {
   @Output() toggled = new EventEmitter<string>();
   @Output() closed  = new EventEmitter<void>();
 
-  /** Id van het karakter dat wacht op bevestiging voor verwijdering */
   pendingRemovalId: string | null = null;
 
+  get activeStarters(): Character[] {
+    return this.characters.filter(c => this.selectedStarters.has(c.id));
+  }
+
+  get inactiveChars(): Character[] {
+    return this.characters.filter(c => !this.selectedStarters.has(c.id));
+  }
+
   handleChipClick(charId: string): void {
-    if (this.selectedStarters.has(charId)) {
-      // Actief → vraag bevestiging
-      this.pendingRemovalId = charId;
-    } else {
-      // Inactief → direct toevoegen
-      this.toggled.emit(charId);
-    }
+    // Actief → vraag bevestiging
+    this.pendingRemovalId = charId;
   }
 
   confirmRemoval(): void {

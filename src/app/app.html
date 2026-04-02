@@ -61,9 +61,13 @@
       <i class="fa-solid fa-rotate-right"></i>
       Opnieuw
     </button>
-    <button class="settings-btn" (click)="settingsOpen = true" title="Instellingen">
-      <i class="fa-solid fa-sliders"></i>
-      Instellingen
+    <button class="settings-btn" (click)="charactersOpen = true" title="Karakters beheren">
+      <i class="fa-solid fa-masks-theater"></i>
+      Karakters
+    </button>
+    <button class="settings-btn" (click)="settingsOpen = true" title="Verhaallijnen beheren">
+      <i class="fa-solid fa-map"></i>
+      Verhaallijnen
     </button>
   </header>
 
@@ -71,6 +75,13 @@
   @if (projectsOpen) {
     <div class="projects-backdrop" (click)="projectsOpen = false"></div>
   }
+
+  <app-character-panel
+    [characters]="characters"
+    [open]="charactersOpen"
+    (charactersChanged)="onCharactersChanged($event)"
+    (closed)="charactersOpen = false"
+  />
 
   <app-story-canvas
     [nodes]="nodes"
