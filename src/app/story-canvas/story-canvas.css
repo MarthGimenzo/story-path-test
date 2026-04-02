@@ -26,12 +26,71 @@
 }
 
 /* ── Klikbare karakter-dots ── */
-.dot-interactive {
-  cursor: pointer;
+.dot-interactive { cursor: pointer; }
+.dot-interactive:hover circle { opacity: 0.75; filter: brightness(1.25); }
+
+/* ── Event picker form ── */
+.event-picker-panel { width: 280px; }
+
+.event-type-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
 }
-.dot-interactive:hover circle:last-of-type {
-  opacity: 0.7;
-  filter: brightness(1.3);
+
+.event-type-btn {
+  flex: 1;
+  background: #0d1f30;
+  border: 1px solid #1a3050;
+  border-radius: 8px;
+  color: #4a6a8a;
+  font-size: 12px;
+  font-family: inherit;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.event-type-btn:hover {
+  border-color: #2a5070;
+  color: #7aaac8;
+}
+.event-type-btn.selected {
+  border-color: #4fc3f7;
+  background: color-mix(in srgb, #4fc3f7 12%, #0d1f30);
+  color: #4fc3f7;
+}
+
+.event-name-input {
+  width: 100%;
+  background: #081420;
+  border: 1px solid #1a3050;
+  border-radius: 8px;
+  color: #c8d8e8;
+  font-size: 13px;
+  font-family: inherit;
+  padding: 8px 12px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.event-name-input:focus { border-color: #2a5070; }
+.event-name-input::placeholder { color: #2a4060; }
+
+.confirm-event-btn {
+  width: 100%;
+  background: #0d2535;
+  border: 1px solid #2a5070;
+  border-radius: 8px;
+  color: #4fc3f7;
+  font-size: 13px;
+  font-family: inherit;
+  padding: 9px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  font-weight: 600;
+}
+.confirm-event-btn:hover {
+  background: #15304a;
+  border-color: #4fc3f7;
 }
 
 /* ── '+' knop ── */

@@ -61,6 +61,23 @@
       />
     }
 
+    <!-- Gebeurtenis-knoppen op verhaalpijlen -->
+    @for (edge of edges; track edge.id) {
+      @if (edge.type !== 'character-move') {
+        <foreignObject
+          [attr.x]="getEdgeMidX(edge) - 13"
+          [attr.y]="getEdgeMidY(edge) - 13"
+          width="26" height="26"
+          style="overflow:visible; cursor:pointer"
+          (click)="openEdgePicker(edge.id, $event)"
+        >
+          <div class="svg-icon-btn svg-icon-btn--event">
+            <i class="fa-solid fa-circle-plus"></i>
+          </div>
+        </foreignObject>
+      }
+    }
+
     <!-- Nodes -->
     @for (node of nodes; track node.id) {
       <g class="node-group" [attr.transform]="'translate(' + getNodeX(node) + ',' + getNodeY(node) + ')'">
@@ -133,18 +150,34 @@
           </g>
         }
 
-        <!-- '+' knop -->
-        <g class="add-btn" (click)="openPicker(node.id, $event)">
-          <circle [attr.cx]="NODE_WIDTH / 2" cy="-16" r="13" class="add-circle" />
-          <text [attr.x]="NODE_WIDTH / 2" y="-11" text-anchor="middle" class="add-plus">+</text>
-        </g>
+        <!-- Personage toevoegen (boven node) — alleen op leaf nodes -->
+        @if (isLeafNode(node)) {
+          <foreignObject
+            [attr.x]="NODE_WIDTH / 2 - 13"
+            y="-29"
+            width="26" height="26"
+            style="overflow:visible; cursor:pointer"
+            (click)="openPicker(node.id, $event)"
+          >
+            <div class="svg-icon-btn svg-icon-btn--add">
+              <i class="fa-solid fa-user-plus"></i>
+            </div>
+          </foreignObject>
+        }
 
-        <!-- '✕' verwijderknop (alleen op niet-start nodes) -->
+        <!-- Verwijderen (rechtsboven in node, alleen niet-start) -->
         @if (node.type !== 'start') {
-          <g class="remove-btn" (click)="nodeRemoved.emit(node.id); $event.stopPropagation()">
-            <circle [attr.cx]="NODE_WIDTH - 10" cy="10" r="9" class="remove-circle" />
-            <text [attr.x]="NODE_WIDTH - 10" y="14" text-anchor="middle" class="remove-x">✕</text>
-          </g>
+          <foreignObject
+            [attr.x]="NODE_WIDTH - 22"
+            y="4"
+            width="20" height="20"
+            style="overflow:visible; cursor:pointer"
+            (click)="nodeRemoved.emit(node.id); $event.stopPropagation()"
+          >
+            <div class="svg-icon-btn svg-icon-btn--delete">
+              <i class="fa-solid fa-trash-can"></i>
+            </div>
+          </foreignObject>
         }
 
       </g>
@@ -158,6 +191,52 @@
     }
 
   </svg>
+
+  <!-- ── Edge gebeurtenis picker ── -->
+  @if (edgePicker) {
+    <div class="picker-overlay" (click)="edgePicker = null">
+      <div class="picker-panel event-picker-panel" (click)="$event.stopPropagation()">
+
+        <div class="picker-header">
+          <span class="picker-title">Gebeurtenis invoegen</span>
+          <button class="picker-close" (click)="edgePicker = null">✕</button>
+        </div>
+
+        <div class="picker-section">
+          <span class="picker-section-label">Type</span>
+          <div class="event-type-row">
+            @for (opt of eventTypeOptions; track opt.value) {
+              <button
+                class="event-type-btn"
+                [class.selected]="edgePickerType === opt.value"
+                (click)="edgePickerType = opt.value"
+              >
+                <i class="fa-solid" [class]="opt.icon"></i>
+                {{ opt.label }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="picker-section">
+          <span class="picker-section-label">Naam (optioneel)</span>
+          <input
+            #nameInput
+            class="event-name-input"
+            [placeholder]="edgePickerType === 'dungeon' ? 'bijv. Het Vergeten Fort' : 'bijv. Verrader ontmaskerd'"
+            (keydown.enter)="confirmEvent(nameInput)"
+          />
+        </div>
+
+        <div class="picker-section">
+          <button class="confirm-event-btn" (click)="confirmEvent(nameInput)">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Invoegen
+          </button>
+        </div>
+
+      </div>
+    </div>
+  }
 
   <!-- ── Karakter-dot picker (vertrek / overstap) ── -->
   @if (charPicker) {
@@ -177,7 +256,7 @@
         <!-- Verlaat groep -->
         <div class="picker-section">
           <button class="leave-btn" (click)="confirmLeave()">
-            <span class="leave-icon">↗</span>
+            <i class="fa-solid fa-right-from-bracket"></i>
             Verlaat de groep
           </button>
           <p class="leave-note">Wordt weer beschikbaar voor een nieuwe ontmoeting.</p>
@@ -186,7 +265,9 @@
         <!-- Overstap naar andere groep -->
         @if (charPickerMoveTargets.length > 0) {
           <div class="picker-section">
-            <span class="picker-section-label">Overstap naar groep</span>
+            <span class="picker-section-label">
+              <i class="fa-solid fa-right-left"></i> Overstap naar groep
+            </span>
             <div class="picker-list">
               @for (group of charPickerMoveTargets; track group.id) {
                 <button class="group-chip" (click)="confirmMove(group.id)">
@@ -217,13 +298,41 @@
 
         <div class="picker-header">
           <span class="picker-title">Volgende stap</span>
-          <button class="picker-close" (click)="pickerParentId = null">✕</button>
+          <button class="picker-close" (click)="pickerParentId = null">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <!-- Gebeurtenis (dungeon, twist, etc.) -->
+        <div class="picker-section">
+          <span class="picker-section-label">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Gebeurtenis
+          </span>
+          <div class="event-type-row">
+            @for (opt of eventTypeOptions; track opt.value) {
+              <button class="event-type-btn"
+                [class.selected]="nodePickerEventType === opt.value"
+                (click)="nodePickerEventType = opt.value">
+                <i class="fa-solid" [class]="opt.icon"></i> {{ opt.label }}
+              </button>
+            }
+          </div>
+          <input #nodeEventNameInput class="event-name-input" style="margin-top:8px"
+            [placeholder]="nodePickerEventType === 'dungeon' ? 'bijv. Het Vergeten Fort' : 'bijv. Verrader ontmaskerd'"
+            (keydown.enter)="confirmNodeEvent(nodeEventNameInput)"
+          />
+          <button class="confirm-event-btn" style="margin-top:6px"
+            (click)="confirmNodeEvent(nodeEventNameInput)">
+            <i class="fa-solid fa-circle-plus"></i> Toevoegen
+          </button>
         </div>
 
         <!-- Ontmoeting: los karakter -->
         @if (availableChars.length > 0) {
           <div class="picker-section">
-            <span class="picker-section-label">Karakter ontmoeten</span>
+            <span class="picker-section-label">
+              <i class="fa-solid fa-user-plus"></i> Karakter ontmoeten
+            </span>
             <div class="picker-list">
               @for (char of availableChars; track char.id) {
                 <button class="char-chip" [style.--char-color]="char.color"
@@ -239,7 +348,9 @@
         <!-- Samenvoegen: andere actieve groep -->
         @if (mergeableGroups.length > 0) {
           <div class="picker-section">
-            <span class="picker-section-label">Groep samenvoegen met</span>
+            <span class="picker-section-label">
+              <i class="fa-solid fa-people-group"></i> Groep samenvoegen met
+            </span>
             <div class="picker-list">
               @for (group of mergeableGroups; track group.id) {
                 <button class="group-chip" (click)="selectMerge(group.id)">

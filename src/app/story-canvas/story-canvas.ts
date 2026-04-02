@@ -13,6 +13,8 @@ export class StoryCanvas {
   @Input() characters: Character[] = [];
 
   @Output() encounterAdded   = new EventEmitter<{ parentId: string; charId: string }>();
+  @Output() eventInserted    = new EventEmitter<{ edgeId: string; name: string; type: 'dungeon' | 'event' | 'split' }>();
+  @Output() eventAppended    = new EventEmitter<{ nodeId: string; name: string; type: 'dungeon' | 'event' | 'split' }>();
   @Output() mergeRequested   = new EventEmitter<{ parentId: string; mergeWithId: string }>();
   @Output() nodeRemoved      = new EventEmitter<string>();
   @Output() characterLeft    = new EventEmitter<{ fromNodeId: string; charId: string }>();
@@ -20,8 +22,8 @@ export class StoryCanvas {
 
   // ── Layout constanten ──────────────────────────────────────────────────────
   readonly NODE_WIDTH    = 190;
-  readonly COL_SPACING   = 260;
-  readonly ROW_SPACING   = 280;
+  readonly COL_SPACING   = 320;
+  readonly ROW_SPACING   = 360;
   readonly PADDING_X     = 80;
   readonly PADDING_BOTTOM = 55;
 
@@ -39,6 +41,20 @@ export class StoryCanvas {
   // ── Karakter-dot picker state ─────────────────────────────────────────────
   charPicker: { nodeId: string; charId: string } | null = null;
   charPickerMoveTargets: StoryNode[] = [];
+
+  // ── Node picker: ook voor gebeurtenissen ──────────────────────────────────
+  nodePickerEventType: 'dungeon' | 'event' | 'split' = 'event';
+
+  // ── Edge gebeurtenis picker state ─────────────────────────────────────────
+  edgePicker: string | null = null;  // edgeId
+  edgePickerType: 'dungeon' | 'event' | 'split' = 'event';
+  edgePickerName = '';
+
+  readonly eventTypeOptions: { value: 'dungeon' | 'event' | 'split'; label: string; icon: string }[] = [
+    { value: 'dungeon', label: 'Dungeon',      icon: 'fa-dungeon'           },
+    { value: 'event',   label: 'Verhaaltwist', icon: 'fa-bolt-lightning'    },
+    { value: 'split',   label: 'Gebeurtenis',  icon: 'fa-star'              },
+  ];
 
   // ── SVG afmetingen ─────────────────────────────────────────────────────────
   get svgWidth(): number {
@@ -177,22 +193,42 @@ export class StoryCanvas {
     return edge.type === 'character-move' ? 1.5 : 2;
   }
 
-  // ── Leaf nodes = actieve groepen (geen uitgaande edges) ────────────────────
+  // ── Leaf nodes = actieve groepen (geen uitgaande verhaal-edges) ───────────
+  /** Verhaal-edges: alles behalve character-move */
+  private storyEdges(): StoryEdge[] {
+    return this.edges.filter(e => e.type !== 'character-move');
+  }
+
+  isLeafNode(node: StoryNode): boolean {
+    return !this.storyEdges().some(e => e.from === node.id);
+  }
+
   get leafNodes(): StoryNode[] {
-    const withOutgoing = new Set(this.edges.map(e => e.from));
-    return this.nodes.filter(n => !withOutgoing.has(n.id));
+    return this.nodes.filter(n => this.isLeafNode(n));
   }
 
   // ── Picker ─────────────────────────────────────────────────────────────────
   openPicker(nodeId: string, event: MouseEvent): void {
     event.stopPropagation();
-    this.pickerParentId = nodeId;
+    this.charPicker          = null;
+    this.edgePicker          = null;
+    this.pickerParentId      = nodeId;
+    this.nodePickerEventType = 'event';
 
     const activeChars = new Set<string>();
     this.leafNodes.forEach(n => n.characters.forEach(c => activeChars.add(c)));
+    this.availableChars  = this.characters.filter(c => !activeChars.has(c.id));
+    this.mergeableGroups = this.leafNodes.filter(n => n.id !== nodeId);
+  }
 
-    this.availableChars   = this.characters.filter(c => !activeChars.has(c.id));
-    this.mergeableGroups  = this.leafNodes.filter(n => n.id !== nodeId);
+  confirmNodeEvent(nameInput: HTMLInputElement): void {
+    if (!this.pickerParentId) return;
+    this.eventAppended.emit({
+      nodeId: this.pickerParentId,
+      name:   nameInput.value.trim(),
+      type:   this.nodePickerEventType,
+    });
+    this.pickerParentId = null;
   }
 
   selectCharacter(charId: string): void {
@@ -208,9 +244,10 @@ export class StoryCanvas {
   }
 
   // ── Karakter-dot interactie ───────────────────────────────────────────────
-  /** Dot is klikbaar als de groep meer dan 1 lid heeft en het geen start-node is. */
+  /** Dot is klikbaar als de groep meer dan 1 lid heeft, geen start-node is,
+   *  én de node een leaf is (geen verdere verhaalstap). */
   isDotInteractive(node: StoryNode): boolean {
-    return node.type !== 'start' && node.characters.length > 1;
+    return node.type !== 'start' && node.characters.length > 1 && this.isLeafNode(node);
   }
 
   openCharPicker(nodeId: string, charId: string, event: MouseEvent): void {
@@ -232,9 +269,43 @@ export class StoryCanvas {
     this.charPicker = null;
   }
 
+  // ── Edge picker ────────────────────────────────────────────────────────────
+  getEdgeMidX(edge: StoryEdge): number {
+    const from = this.nodes.find(n => n.id === edge.from)!;
+    const to   = this.nodes.find(n => n.id === edge.to)!;
+    return (this.getNodeCenterX(from) + this.getNodeCenterX(to)) / 2;
+  }
+
+  getEdgeMidY(edge: StoryEdge): number {
+    const from = this.nodes.find(n => n.id === edge.from)!;
+    const to   = this.nodes.find(n => n.id === edge.to)!;
+    return (this.getNodeY(from) + this.getNodeY(to) + this.getNodeHeight(to)) / 2;
+  }
+
+  openEdgePicker(edgeId: string, event: MouseEvent): void {
+    event.stopPropagation();
+    this.pickerParentId = null;
+    this.charPicker = null;
+    this.edgePicker = edgeId;
+    this.edgePickerName = '';
+    this.edgePickerType = 'event';
+  }
+
+  confirmEvent(nameInput: HTMLInputElement): void {
+    if (!this.edgePicker) return;
+    this.eventInserted.emit({
+      edgeId: this.edgePicker,
+      name: nameInput.value.trim(),
+      type: this.edgePickerType,
+    });
+    this.edgePicker = null;
+    this.edgePickerName = '';
+  }
+
   closeAllPickers(): void {
     this.pickerParentId = null;
     this.charPicker = null;
+    this.edgePicker = null;
   }
 
   // ── Kleur hulpfuncties ─────────────────────────────────────────────────────

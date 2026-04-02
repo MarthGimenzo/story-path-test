@@ -124,6 +124,74 @@ export class App {
     this.extraEdges = this.extraEdges.filter(e => !toRemove.has(e.from) && !toRemove.has(e.to));
   }
 
+  /** Voeg een gebeurtenis-node toe als volgende stap na een leaf node. */
+  onEventAppended(event: { nodeId: string; name: string; type: 'dungeon' | 'event' | 'split' }): void {
+    const node = this.nodes.find(n => n.id === event.nodeId)!;
+    const insertRow = node.row + 1;
+
+    this.extraNodes = this.extraNodes.map(n =>
+      n.row >= insertRow ? { ...n, row: n.row + 1 } : n
+    );
+
+    const defaultLabels: Record<string, string> = {
+      dungeon: 'Dungeon', event: 'Verhaaltwist', split: 'Gebeurtenis',
+    };
+    const label = event.name || defaultLabels[event.type];
+
+    const eventNode: StoryNode = {
+      id: `evt-${Date.now()}`,
+      characters: [...node.characters],
+      label,
+      description: event.name || label,
+      col: node.col,
+      row: insertRow,
+      type: event.type,
+    };
+
+    this.extraNodes = [...this.extraNodes, eventNode];
+    this.extraEdges = [...this.extraEdges, { id: `e-${eventNode.id}`, from: event.nodeId, to: eventNode.id }];
+  }
+
+  /** Voeg een gebeurtenis-node in op een bestaande pijl. */
+  onEventInserted(event: { edgeId: string; name: string; type: 'dungeon' | 'event' | 'split' }): void {
+    const edge = this.extraEdges.find(e => e.id === event.edgeId);
+    if (!edge) return;
+
+    const fromNode = this.nodes.find(n => n.id === edge.from)!;
+
+    const insertRow = fromNode.row + 1;
+
+    // Schuif alle nodes vanaf insertRow één rij omhoog zodat er ruimte ontstaat
+    this.extraNodes = this.extraNodes.map(n =>
+      n.row >= insertRow ? { ...n, row: n.row + 1 } : n
+    );
+
+    const defaultLabels: Record<string, string> = {
+      dungeon: 'Dungeon',
+      event:   'Verhaaltwist',
+      split:   'Gebeurtenis',
+    };
+    const label = event.name || defaultLabels[event.type];
+
+    const eventNode: StoryNode = {
+      id: `evt-${Date.now()}`,
+      characters: [...fromNode.characters],
+      label,
+      description: event.name || label,
+      col: fromNode.col,
+      row: insertRow,
+      type: event.type,
+    };
+
+    this.extraEdges = this.extraEdges.filter(e => e.id !== event.edgeId);
+    this.extraNodes = [...this.extraNodes, eventNode];
+    this.extraEdges = [
+      ...this.extraEdges,
+      { id: `e-${eventNode.id}-in`,  from: edge.from,    to: eventNode.id },
+      { id: `e-${eventNode.id}-out`, from: eventNode.id, to: edge.to      },
+    ];
+  }
+
   /** Karakter verlaat groep → groep gaat verder zonder hem/haar. */
   onCharacterLeft({ fromNodeId, charId }: { fromNodeId: string; charId: string }): void {
     const fromNode  = this.nodes.find(n => n.id === fromNodeId)!;

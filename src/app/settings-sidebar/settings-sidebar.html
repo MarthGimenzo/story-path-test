@@ -5,7 +5,9 @@
 <aside class="sidebar" [class.open]="open">
   <div class="sidebar-header">
     <span class="sidebar-title">Instellingen</span>
-    <button class="sidebar-close" (click)="closed.emit()" title="Sluiten">✕</button>
+    <button class="sidebar-close" (click)="closed.emit()" title="Sluiten">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
   </div>
 
   <div class="sidebar-section">
@@ -22,8 +24,12 @@
           <div class="confirm-row" [style.--char-color]="char.color">
             <span class="confirm-dot" [style.background]="char.color"></span>
             <span class="confirm-text">{{ char.name }} verwijderen?</span>
-            <button class="confirm-yes" (click)="confirmRemoval()">Ja</button>
-            <button class="confirm-no"  (click)="cancelRemoval()">Nee</button>
+            <button class="confirm-yes" (click)="confirmRemoval()">
+              <i class="fa-solid fa-check"></i> Ja
+            </button>
+            <button class="confirm-no"  (click)="cancelRemoval()">
+              <i class="fa-solid fa-xmark"></i> Nee
+            </button>
           </div>
         } @else {
           <button
