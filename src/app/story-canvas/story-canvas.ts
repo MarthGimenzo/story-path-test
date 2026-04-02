@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, EventEmitter, Input, NgZone, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { Character, StoryEdge, StoryNode } from '../story.types';
 
 @Component({
@@ -7,7 +7,52 @@ import { Character, StoryEdge, StoryNode } from '../story.types';
   styleUrl: './story-canvas.css',
   standalone: true,
 })
-export class StoryCanvas {
+export class StoryCanvas implements OnChanges {
+
+  constructor(
+    private readonly el:  ElementRef,
+    private readonly zone: NgZone,
+    private readonly cdr:  ChangeDetectorRef,
+  ) {}
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (!changes['nodes']) return;
+    const prev: StoryNode[] = changes['nodes'].previousValue ?? [];
+    const curr: StoryNode[] = changes['nodes'].currentValue ?? [];
+    // Alleen panen bij interactieve toevoeging (niet bij laden / undo)
+    if (prev.length === 0) return;
+    const newNodes = curr.filter(n => !prev.some(p => p.id === n.id));
+    if (newNodes.length === 0 || newNodes.length > 3) return;
+    this.panToNode(newNodes[newNodes.length - 1]);
+  }
+
+  private panToNode(node: StoryNode): void {
+    const host = this.el.nativeElement as HTMLElement;
+    const cx = host.clientWidth  / 2;
+    const cy = host.clientHeight / 2;
+    const targetX = cx - this.getNodeCenterX(node);
+    const targetY = cy - (this.getNodeY(node) + this.getNodeHeight(node) / 2);
+    this.animatePan(targetX, targetY, 1000);
+  }
+
+  private animatePan(toX: number, toY: number, duration: number): void {
+    const fromX = this.panX;
+    const fromY = this.panY;
+    const t0    = performance.now();
+
+    this.zone.runOutsideAngular(() => {
+      const tick = (now: number) => {
+        const t = Math.min((now - t0) / duration, 1);
+        // ease-in-out cubic
+        const e = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2;
+        this.panX = fromX + (toX - fromX) * e;
+        this.panY = fromY + (toY - fromY) * e;
+        this.cdr.detectChanges();
+        if (t < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+  }
   @Input() nodes: StoryNode[] = [];
   @Input() edges: StoryEdge[] = [];
   @Input() characters: Character[] = [];
@@ -22,8 +67,8 @@ export class StoryCanvas {
 
   // ── Layout constanten ──────────────────────────────────────────────────────
   readonly NODE_WIDTH  = 190;
-  readonly COL_SPACING = 320;
-  readonly ROW_GAP     = 80;   // minimale ruimte tussen rijen
+  readonly COL_SPACING = 420;
+  readonly ROW_GAP     = 120;  // minimale ruimte tussen rijen
   readonly PADDING_X   = 80;
   readonly PADDING_TOP = 60;   // ruimte boven de eerste rij
 

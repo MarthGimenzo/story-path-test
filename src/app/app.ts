@@ -239,18 +239,21 @@ export class App implements OnInit {
   /** Eén nieuw karakter ontmoet de groep → volledige groep + nieuw karakter. */
   onEncounterAdded(event: { parentId: string; charId: string }): void {
     this.snapshot();
-    const parent = this.nodes.find(n => n.id === event.parentId)!;
-    const char   = this.characters.find(c => c.id === event.charId)!;
+    const parent    = this.nodes.find(n => n.id === event.parentId)!;
+    const char      = this.characters.find(c => c.id === event.charId)!;
+    const insertRow = parent.row + 1;
 
-    const newChars = [...parent.characters, char.id];
+    this.extraNodes = this.extraNodes.map(n =>
+      n.row >= insertRow ? { ...n, row: n.row + 1 } : n
+    );
 
     const newNode: StoryNode = {
       id: `enc-${Date.now()}`,
-      characters: newChars,
+      characters: [...parent.characters, char.id],
       label: 'Ontmoeting',
       description: `${this.party(parent.characters)} ${this.meetVerb(parent.characters.length)} ${char.name}`,
       col: parent.col,
-      row: parent.row + 1,
+      row: insertRow,
       type: 'encounter',
     };
 
@@ -348,7 +351,11 @@ export class App implements OnInit {
     const fromNode  = this.nodes.find(n => n.id === fromNodeId)!;
     const remaining = fromNode.characters.filter(c => c !== charId);
     const char      = this.characters.find(c => c.id === charId)!;
-    const newLeader = this.characters.find(c => c.id === remaining[0])!;
+    const insertRow = fromNode.row + 1;
+
+    this.extraNodes = this.extraNodes.map(n =>
+      n.row >= insertRow ? { ...n, row: n.row + 1 } : n
+    );
 
     const newNode: StoryNode = {
       id: `leave-${Date.now()}`,
@@ -356,7 +363,7 @@ export class App implements OnInit {
       label: 'Vertrek',
       description: `${char.name} verlaat ${this.party(remaining)}`,
       col: fromNode.col,
-      row: fromNode.row + 1,
+      row: insertRow,
       type: 'event',
     };
 
@@ -372,27 +379,30 @@ export class App implements OnInit {
     const char      = this.characters.find(c => c.id === charId)!;
     const remaining = fromNode.characters.filter(c => c !== charId);
     const newChars  = [...toNode.characters, charId];
-    const newRow    = Math.max(fromNode.row, toNode.row) + 1;
-    const fromLeader = this.characters.find(c => c.id === remaining[0])!;
-    const toLeader   = this.characters.find(c => c.id === toNode.characters[0])!;
+    const insertRow = Math.max(fromNode.row, toNode.row) + 1;
 
+    this.extraNodes = this.extraNodes.map(n =>
+      n.row >= insertRow ? { ...n, row: n.row + 1 } : n
+    );
+
+    const ts = Date.now();
     const departNode: StoryNode = {
-      id: `depart-${Date.now()}`,
+      id: `depart-${ts}`,
       characters: remaining,
       label: 'Vertrek',
       description: `${char.name} verlaat ${this.party(remaining)}`,
       col: fromNode.col,
-      row: newRow,
+      row: insertRow,
       type: 'event',
     };
 
     const arriveNode: StoryNode = {
-      id: `arrive-${Date.now()}`,
+      id: `arrive-${ts}`,
       characters: newChars,
       label: 'Aankomst',
       description: `${this.party(toNode.characters)} ${this.meetVerb(toNode.characters.length)} ${char.name}`,
       col: toNode.col,
-      row: newRow,
+      row: insertRow,
       type: 'encounter',
     };
 
@@ -401,7 +411,7 @@ export class App implements OnInit {
       ...this.extraEdges,
       { id: `e-${departNode.id}`,  from: fromNodeId,    to: departNode.id },
       { id: `e-${arriveNode.id}`,  from: toNodeId,      to: arriveNode.id },
-      { id: `e-move-${Date.now()}`, from: departNode.id, to: arriveNode.id, type: 'character-move', charId },
+      { id: `e-move-${ts}`,        from: departNode.id, to: arriveNode.id, type: 'character-move', charId },
     ];
   }
 
@@ -413,10 +423,11 @@ export class App implements OnInit {
 
     const mergedChars = [...new Set([...a.characters, ...b.characters])];
     const mergedCol   = (a.col + b.col) / 2;
-    const mergedRow   = Math.max(a.row, b.row) + 1;
+    const insertRow   = Math.max(a.row, b.row) + 1;
 
-    const leaderA = this.characters.find(c => c.id === a.characters[0])!;
-    const leaderB = this.characters.find(c => c.id === b.characters[0])!;
+    this.extraNodes = this.extraNodes.map(n =>
+      n.row >= insertRow ? { ...n, row: n.row + 1 } : n
+    );
 
     const newNode: StoryNode = {
       id: `merge-${Date.now()}`,
@@ -424,7 +435,7 @@ export class App implements OnInit {
       label: 'Samenvoeging',
       description: `${this.party(a.characters)} sluiten zich aaneen met ${this.party(b.characters)}`,
       col: mergedCol,
-      row: mergedRow,
+      row: insertRow,
       type: 'encounter',
     };
 

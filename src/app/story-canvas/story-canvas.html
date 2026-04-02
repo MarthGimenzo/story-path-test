@@ -10,14 +10,14 @@
   <svg width="100%" height="100%" class="story-svg">
     <defs>
       <!-- Pijl voor verhaallijnen (kleur via context-stroke) -->
-      <marker id="arrow" markerWidth="10" markerHeight="7"
-              refX="9" refY="3.5" orient="auto" markerUnits="strokeWidth">
-        <polygon points="0 0, 10 3.5, 0 7" fill="context-stroke" />
+      <marker id="arrow" markerWidth="6" markerHeight="4"
+              refX="5" refY="2" orient="auto" markerUnits="strokeWidth">
+        <polygon points="0 0, 6 2, 0 4" fill="context-stroke" />
       </marker>
       <!-- Gekleurde pijl voor personage-verhuizingen -->
-      <marker id="arrow-move" markerWidth="10" markerHeight="7"
-              refX="9" refY="3.5" orient="auto" markerUnits="strokeWidth">
-        <polygon points="0 0, 10 3.5, 0 7" fill="context-stroke" />
+      <marker id="arrow-move" markerWidth="6" markerHeight="4"
+              refX="5" refY="2" orient="auto" markerUnits="strokeWidth">
+        <polygon points="0 0, 6 2, 0 4" fill="context-stroke" />
       </marker>
       <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
         <feGaussianBlur stdDeviation="4" result="blur" />
@@ -57,6 +57,7 @@
     <!-- Pijlen -->
     @for (edge of edges; track edge.id) {
       <path
+        [class.edge-story]="edge.type !== 'character-move'"
         [attr.d]="getEdgePath(edge)"
         fill="none"
         [attr.stroke]="getEdgeColor(edge)"
