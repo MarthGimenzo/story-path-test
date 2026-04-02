@@ -87,9 +87,12 @@
 
     <!-- Nodes -->
     @for (node of nodes; track node.id) {
-      <g class="node-group" [attr.transform]="'translate(' + getNodeX(node) + ',' + getNodeY(node) + ')'">
+      <g class="node-group" [class.node-new]="newNodeIds.has(node.id)"
+         [attr.transform]="'translate(' + getNodeX(node) + ',' + getNodeY(node) + ')'"
+         [class.node-dragging]="draggingNodeId === node.id"
+         (mousedown)="onNodeDragStart(node, $event)">
 
-        <!-- Achtergrond -->
+        <!-- Achtergrond (ook sleepgebied) -->
         <rect
           [attr.width]="NODE_WIDTH"
           [attr.height]="getNodeHeight(node)"

@@ -1,6 +1,10 @@
 import { ChangeDetectorRef, Component, ElementRef, EventEmitter, Input, NgZone, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { Character, StoryEdge, StoryNode } from '../story.types';
 
+// ── Lane-layout hulptype ──────────────────────────────────────────────────────
+/** Elke lane is een groep van nodes die in dezelfde verticale kolom thuishoren. */
+interface Lane { id: number; avgCol: number; nodeIds: string[]; }
+
 @Component({
   selector: 'app-story-canvas',
   templateUrl: './story-canvas.html',
@@ -15,15 +19,97 @@ export class StoryCanvas implements OnChanges {
     private readonly cdr:  ChangeDetectorRef,
   ) {}
 
+  /** Effectieve kolom per node-id na lane-conflict-oplossing. */
+  effectiveCols: Map<string, number> = new Map();
+
+  /** IDs van zojuist toegevoegde nodes — krijgen de verschijn-animatie. */
+  newNodeIds = new Set<string>();
+
   ngOnChanges(changes: SimpleChanges): void {
+    if (changes['nodes'] || changes['edges']) {
+      this.effectiveCols = this.computeEffectiveCols();
+    }
     if (!changes['nodes']) return;
+
     const prev: StoryNode[] = changes['nodes'].previousValue ?? [];
     const curr: StoryNode[] = changes['nodes'].currentValue ?? [];
-    // Alleen panen bij interactieve toevoeging (niet bij laden / undo)
+    const added = curr.filter(n => !prev.some(p => p.id === n.id));
+
+    // Animatie alleen voor nieuw toegevoegde nodes (niet bij laden / undo)
+    if (added.length > 0 && prev.length > 0) {
+      added.forEach(n => this.newNodeIds.add(n.id));
+      // Verwijder na afloop animatie zodat undo/redo niet herstart
+      setTimeout(() => added.forEach(n => this.newNodeIds.delete(n.id)), 2700);
+    }
+
+    // Alleen panen bij interactieve toevoeging
     if (prev.length === 0) return;
-    const newNodes = curr.filter(n => !prev.some(p => p.id === n.id));
-    if (newNodes.length === 0 || newNodes.length > 3) return;
-    this.panToNode(newNodes[newNodes.length - 1]);
+    if (added.length === 0 || added.length > 3) return;
+    this.panToNode(added[added.length - 1]);
+  }
+
+  /**
+   * Groepeert nodes in "lanes": nodes verbonden via story-edges met gelijke col
+   * vormen één lane. Lanes worden gesorteerd op gewenste positie en minstens
+   * 1 kolomunit uit elkaar geplaatst zodat ze nooit visueel overlappen.
+   */
+  private computeEffectiveCols(): Map<string, number> {
+    const MIN_GAP = 1.0;
+    const result  = new Map<string, number>(this.nodes.map(n => [n.id, n.col]));
+    const storyEdges = this.edges.filter(e => e.type !== 'character-move');
+
+    // ── Stap 1: groepeer nodes in lanes via BFS ──────────────────────────────
+    const laneOf  = new Map<string, number>(); // nodeId → laneId
+    const lanes   = new Map<number, Lane>();
+    let   nextId  = 0;
+
+    // Start nodes eerst zodat hun lane-id laag is (prioriteit bij sorteren)
+    const ordered = [...this.nodes].sort((a, b) =>
+      (a.type === 'start' ? 0 : 1) - (b.type === 'start' ? 0 : 1) || a.col - b.col
+    );
+
+    for (const node of ordered) {
+      if (laneOf.has(node.id)) continue;
+      const laneId = nextId++;
+      const lane: Lane = { id: laneId, avgCol: 0, nodeIds: [] };
+      lanes.set(laneId, lane);
+
+      const queue = [node.id];
+      while (queue.length) {
+        const id = queue.shift()!;
+        if (laneOf.has(id)) continue;
+        laneOf.set(id, laneId);
+        lane.nodeIds.push(id);
+
+        const curr = this.nodes.find(n => n.id === id);
+        if (!curr) continue;
+        storyEdges
+          .filter(e => e.from === id || e.to === id)
+          .map(e => e.from === id ? e.to : e.from)
+          .forEach(connId => {
+            if (laneOf.has(connId)) return;
+            const conn = this.nodes.find(n => n.id === connId);
+            if (conn && Math.abs(conn.col - curr.col) < 0.001) queue.push(connId);
+          });
+      }
+    }
+
+    // ── Stap 2: gemiddelde col per lane ──────────────────────────────────────
+    for (const [laneId, lane] of lanes) {
+      const sum = lane.nodeIds.reduce((s, id) => s + (result.get(id) ?? 0), 0);
+      lane.avgCol = sum / lane.nodeIds.length;
+    }
+
+    // ── Stap 3: sorteer lanes en schuif ze uit elkaar ─────────────────────────
+    const sorted = [...lanes.values()].sort((a, b) => a.avgCol - b.avgCol || a.id - b.id);
+    let prevEffCol = -Infinity;
+    for (const lane of sorted) {
+      const effCol = Math.max(lane.avgCol, prevEffCol + MIN_GAP);
+      lane.nodeIds.forEach(id => result.set(id, effCol));
+      prevEffCol = effCol;
+    }
+
+    return result;
   }
 
   private panToNode(node: StoryNode): void {
@@ -56,6 +142,7 @@ export class StoryCanvas implements OnChanges {
   @Input() nodes: StoryNode[] = [];
   @Input() edges: StoryEdge[] = [];
   @Input() characters: Character[] = [];
+  @Input() nodeOverrides: Record<string, { x: number; y: number }> = {};
 
   @Output() encounterAdded   = new EventEmitter<{ parentId: string; charId: string }>();
   @Output() eventInserted    = new EventEmitter<{ edgeId: string; name: string; type: 'dungeon' | 'event' | 'split' }>();
@@ -64,6 +151,7 @@ export class StoryCanvas implements OnChanges {
   @Output() nodeRemoved      = new EventEmitter<string>();
   @Output() characterLeft    = new EventEmitter<{ fromNodeId: string; charId: string }>();
   @Output() characterMoved   = new EventEmitter<{ fromNodeId: string; charId: string; toNodeId: string }>();
+  @Output() nodePositioned   = new EventEmitter<{ nodeId: string; x: number; y: number }>();
 
   // ── Layout constanten ──────────────────────────────────────────────────────
   readonly NODE_WIDTH  = 190;
@@ -116,6 +204,67 @@ export class StoryCanvas implements OnChanges {
     if (!this.didPan) this.closeAllPickers();
   }
 
+  // ── Node-drag state ───────────────────────────────────────────────────────
+  draggingNodeId: string | null = null;
+  private dragX        = 0;
+  private dragY        = 0;
+  private dragOffsetX  = 0;
+  private dragOffsetY  = 0;
+  private didDragNode  = false;
+  private boundDragMove: ((e: MouseEvent) => void) | null = null;
+  private boundDragEnd:  ((e: MouseEvent) => void) | null = null;
+
+  onNodeDragStart(node: StoryNode, event: MouseEvent): void {
+    // Niet slepen via knoppen of karakter-dots
+    const target = event.target as Element;
+    if (target.closest('foreignObject') || target.closest('.dot-interactive')) return;
+    event.stopPropagation(); // voorkom canvas-pan
+    event.preventDefault();
+
+    const svgEl  = (this.el.nativeElement as HTMLElement).querySelector('svg')!;
+    const rect   = svgEl.getBoundingClientRect();
+    const cx     = event.clientX - rect.left - this.panX;
+    const cy     = event.clientY - rect.top  - this.panY;
+
+    // Huidige positie ophalen VOOR draggingNodeId wordt gezet
+    // (anders leest getNodeX dragX=0 terug als initiële waarde)
+    const startX = this.getNodeX(node);
+    const startY = this.getNodeY(node);
+
+    this.dragX          = startX;
+    this.dragY          = startY;
+    this.draggingNodeId = node.id;
+    this.dragOffsetX    = cx - this.dragX;
+    this.dragOffsetY    = cy - this.dragY;
+    this.didDragNode    = false;
+
+    this.boundDragMove = (e: MouseEvent) => {
+      const r  = svgEl.getBoundingClientRect();
+      const nx = e.clientX - r.left - this.panX - this.dragOffsetX;
+      const ny = e.clientY - r.top  - this.panY - this.dragOffsetY;
+      if (Math.abs(nx - this.dragX) > 2 || Math.abs(ny - this.dragY) > 2) this.didDragNode = true;
+      this.dragX = nx;
+      this.dragY = ny;
+      this.cdr.detectChanges();
+    };
+
+    this.boundDragEnd = () => {
+      if (this.didDragNode && this.draggingNodeId) {
+        this.nodePositioned.emit({ nodeId: this.draggingNodeId, x: this.dragX, y: this.dragY });
+      }
+      this.draggingNodeId = null;
+      this.didDragNode    = false;
+      if (this.boundDragMove) document.removeEventListener('mousemove', this.boundDragMove);
+      if (this.boundDragEnd)  document.removeEventListener('mouseup',   this.boundDragEnd);
+      this.boundDragMove = null;
+      this.boundDragEnd  = null;
+      this.cdr.detectChanges();
+    };
+
+    document.addEventListener('mousemove', this.boundDragMove);
+    document.addEventListener('mouseup',   this.boundDragEnd);
+  }
+
   // ── '+' picker state ──────────────────────────────────────────────────────
   pickerParentId: string | null = null;
   availableChars: Character[]   = [];
@@ -141,8 +290,9 @@ export class StoryCanvas implements OnChanges {
 
   // ── SVG afmetingen ─────────────────────────────────────────────────────────
   get svgWidth(): number {
-    const maxCol = this.nodes.reduce((max, n) => Math.max(max, n.col), 0);
-    return Math.max(500, this.PADDING_X * 2 + (maxCol + 1) * this.COL_SPACING);
+    const colXValues = this.nodes.map(n => this.getNodeX(n));
+    const maxX = colXValues.length ? Math.max(...colXValues) : 0;
+    return Math.max(500, maxX + this.NODE_WIDTH + this.PADDING_X);
   }
 
   get svgHeight(): number {
@@ -205,10 +355,17 @@ export class StoryCanvas implements OnChanges {
 
   // ── Positie berekeningen ───────────────────────────────────────────────────
   getNodeX(node: StoryNode): number {
-    return this.PADDING_X + node.col * this.COL_SPACING;
+    if (this.draggingNodeId === node.id) return this.dragX;
+    const ov = this.nodeOverrides[node.id];
+    if (ov !== undefined) return ov.x;
+    const col = this.effectiveCols.get(node.id) ?? node.col;
+    return this.PADDING_X + col * this.COL_SPACING;
   }
 
   getNodeY(node: StoryNode): number {
+    if (this.draggingNodeId === node.id) return this.dragY;
+    const ov = this.nodeOverrides[node.id];
+    if (ov !== undefined) return ov.y;
     return this.getRowCenterY(node.row) - this.getNodeHeight(node) / 2;
   }
 
@@ -312,6 +469,7 @@ export class StoryCanvas implements OnChanges {
   get leafNodes(): StoryNode[] {
     return this.nodes.filter(n => this.isLeafNode(n));
   }
+
 
   // ── Picker ─────────────────────────────────────────────────────────────────
   openPicker(nodeId: string, event: MouseEvent): void {

@@ -33,13 +33,22 @@
 }
 
 /* ── Node animatie bij verschijnen ── */
-.node-group {
-  animation: nodeAppear 0.4s ease-out 0.5s both;
+/* Animatie alleen voor zojuist aangemakte nodes */
+.node-new {
+  animation: nodeAppear 0.4s ease-out 2s both;
 }
 
 @keyframes nodeAppear {
   from { opacity: 0; }
   to   { opacity: 1; }
+}
+
+.node-group { cursor: grab; }
+
+.node-dragging {
+  cursor: grabbing;
+  filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.65));
+  opacity: 0.9;
 }
 
 /* ── Pijl-teken animatie ── */

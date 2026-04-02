@@ -4,10 +4,13 @@ import { SettingsSidebar } from './settings-sidebar/settings-sidebar';
 import { StoryCanvas } from './story-canvas/story-canvas';
 import { Character, StoryEdge, StoryNode } from './story.types';
 
+type NodeOverrides = Record<string, { x: number; y: number }>;
+
 interface Snapshot {
   starters: string[];
   nodes: StoryNode[];
   edges: StoryEdge[];
+  overrides: NodeOverrides;
 }
 
 @Component({
@@ -18,7 +21,8 @@ interface Snapshot {
   imports: [SettingsSidebar, StoryCanvas, FormsModule],
 })
 export class App implements OnInit {
-  settingsOpen = false;
+  settingsOpen    = false;
+  nodeOverrides: NodeOverrides = {};
   selectedStarters = new Set<string>(['jouke', 'thijs', 'ilva', 'douwe']);
 
   // ── Undo / Redo ───────────────────────────────────────────────────────────
@@ -32,9 +36,9 @@ export class App implements OnInit {
   private snapshot(): void {
     this.history = [
       ...this.history.slice(-(this.MAX_HISTORY - 1)),
-      { starters: [...this.selectedStarters], nodes: [...this.extraNodes], edges: [...this.extraEdges] },
+      { starters: [...this.selectedStarters], nodes: [...this.extraNodes], edges: [...this.extraEdges], overrides: { ...this.nodeOverrides } },
     ];
-    this.future = []; // nieuwe actie wist de redo-stack
+    this.future = [];
   }
 
   undo(): void {
@@ -42,11 +46,12 @@ export class App implements OnInit {
     if (!prev) return;
     this.future = [
       ...this.future.slice(-(this.MAX_HISTORY - 1)),
-      { starters: [...this.selectedStarters], nodes: [...this.extraNodes], edges: [...this.extraEdges] },
+      { starters: [...this.selectedStarters], nodes: [...this.extraNodes], edges: [...this.extraEdges], overrides: { ...this.nodeOverrides } },
     ];
     this.selectedStarters = new Set(prev.starters);
-    this.extraNodes = prev.nodes;
-    this.extraEdges = prev.edges;
+    this.extraNodes  = prev.nodes;
+    this.extraEdges  = prev.edges;
+    this.nodeOverrides = prev.overrides ?? {};
   }
 
   redo(): void {
@@ -54,11 +59,12 @@ export class App implements OnInit {
     if (!next) return;
     this.history = [
       ...this.history.slice(-(this.MAX_HISTORY - 1)),
-      { starters: [...this.selectedStarters], nodes: [...this.extraNodes], edges: [...this.extraEdges] },
+      { starters: [...this.selectedStarters], nodes: [...this.extraNodes], edges: [...this.extraEdges], overrides: { ...this.nodeOverrides } },
     ];
     this.selectedStarters = new Set(next.starters);
-    this.extraNodes = next.nodes;
-    this.extraEdges = next.edges;
+    this.extraNodes  = next.nodes;
+    this.extraEdges  = next.edges;
+    this.nodeOverrides = next.overrides ?? {};
   }
 
   // ── Projectbeheer (localStorage) ─────────────────────────────────────────
@@ -102,8 +108,9 @@ export class App implements OnInit {
       this.currentProject = name;
       const snap = all[name];
       this.selectedStarters = new Set(snap.starters ?? []);
-      this.extraNodes = snap.nodes ?? [];
-      this.extraEdges = snap.edges ?? [];
+      this.extraNodes    = snap.nodes ?? [];
+      this.extraEdges    = snap.edges ?? [];
+      this.nodeOverrides = snap.overrides ?? {};
     }
     this.refreshProjectList();
   }
@@ -111,9 +118,10 @@ export class App implements OnInit {
   save(): void {
     const all = this.getAllProjects();
     all[this.currentProject] = {
-      starters: [...this.selectedStarters],
-      nodes: this.extraNodes,
-      edges: this.extraEdges,
+      starters:  [...this.selectedStarters],
+      nodes:     this.extraNodes,
+      edges:     this.extraEdges,
+      overrides: this.nodeOverrides,
     };
     localStorage.setItem(this.PROJECTS_KEY, JSON.stringify(all));
     localStorage.setItem(this.CURRENT_KEY, this.currentProject);
@@ -128,8 +136,9 @@ export class App implements OnInit {
     if (!snap) return;
     this.currentProject = name;
     this.selectedStarters = new Set(snap.starters ?? []);
-    this.extraNodes = snap.nodes ?? [];
-    this.extraEdges = snap.edges ?? [];
+    this.extraNodes    = snap.nodes ?? [];
+    this.extraEdges    = snap.edges ?? [];
+    this.nodeOverrides = snap.overrides ?? {};
     this.history = [];
     this.future  = [];
     localStorage.setItem(this.CURRENT_KEY, name);
@@ -152,11 +161,17 @@ export class App implements OnInit {
   newProject(): void {
     this.currentProject = 'Nieuw verhaal';
     this.selectedStarters = new Set(['jouke', 'thijs', 'ilva', 'douwe']);
-    this.extraNodes = [];
-    this.extraEdges = [];
+    this.extraNodes    = [];
+    this.extraEdges    = [];
+    this.nodeOverrides = {};
     this.history = [];
     this.future  = [];
     this.projectsOpen = false;
+  }
+
+  onNodePositioned(event: { nodeId: string; x: number; y: number }): void {
+    this.snapshot();
+    this.nodeOverrides = { ...this.nodeOverrides, [event.nodeId]: { x: event.x, y: event.y } };
   }
 
   readonly characters: Character[] = [

@@ -76,6 +76,7 @@
     [nodes]="nodes"
     [edges]="edges"
     [characters]="characters"
+    [nodeOverrides]="nodeOverrides"
     (encounterAdded)="onEncounterAdded($event)"
     (mergeRequested)="onMergeRequested($event)"
     (nodeRemoved)="onNodeRemoved($event)"
@@ -83,6 +84,7 @@
     (characterMoved)="onCharacterMoved($event)"
     (eventInserted)="onEventInserted($event)"
     (eventAppended)="onEventAppended($event)"
+    (nodePositioned)="onNodePositioned($event)"
   />
 
 </div>
