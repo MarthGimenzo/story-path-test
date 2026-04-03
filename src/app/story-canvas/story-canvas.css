@@ -488,3 +488,181 @@
   border-color: #e05a30;
   color: #e87050;
 }
+
+/* ── Opsplitsen knop in node menu ── */
+.split-open-btn {
+  width: 100%;
+  background: none;
+  border: 1px solid #4a2e10;
+  border-radius: 8px;
+  color: #9a6848;
+  font-size: 13px;
+  font-family: 'Lora', Georgia, serif;
+  padding: 9px 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.split-open-btn:hover {
+  background: rgba(28, 16, 8, 0.5);
+  border-color: #c090e0;
+  color: #c090e0;
+}
+
+/* ── Split overlay panel ── */
+.picker-panel--split {
+  width: min(90vw, 500px);
+}
+
+.split-instruction {
+  padding: 8px 14px 4px;
+  font-size: 11px;
+  color: #5a3a1a;
+  font-family: 'Lora', Georgia, serif;
+  font-style: italic;
+  border-bottom: 1px solid #261808;
+}
+
+.split-groups-scroll {
+  overflow-x: auto;
+  padding: 12px;
+}
+
+.split-groups-row {
+  display: flex;
+  gap: 10px;
+  min-width: min-content;
+}
+
+.split-group {
+  flex: 1;
+  min-width: 130px;
+  background: #200e06;
+  border: 1.5px dashed #4a2e10;
+  border-radius: 10px;
+  padding: 8px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.split-group:hover {
+  border-color: #7a4820;
+}
+
+.split-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.split-group-label {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #5a3a1a;
+  font-family: 'Cinzel', Georgia, serif;
+}
+
+.split-group-remove {
+  background: none;
+  border: none;
+  color: #5a2a10;
+  font-size: 10px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+.split-group-remove:hover { color: #e05a30; }
+
+.split-group-chars {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-height: 48px;
+}
+
+.split-char-chip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: #261808;
+  border: 1px solid #3a2410;
+  border-radius: 8px;
+  padding: 5px 8px;
+  cursor: grab;
+  user-select: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+.split-char-chip:hover {
+  border-color: var(--char-color, #e8a840);
+  background: color-mix(in srgb, var(--char-color, #e8a840) 10%, #261808);
+}
+.split-char-chip:active { cursor: grabbing; }
+
+.split-char-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.split-char-initial {
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.65);
+  font-family: 'Cinzel', Georgia, serif;
+  flex-shrink: 0;
+}
+
+.split-char-name {
+  font-size: 12px;
+  color: #c0966a;
+  font-family: 'Lora', Georgia, serif;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.split-char-drag-icon {
+  color: #4a2e10;
+  font-size: 9px;
+  flex-shrink: 0;
+}
+
+.split-drop-hint {
+  font-size: 11px;
+  color: #4a2e10;
+  text-align: center;
+  padding: 10px 4px;
+  font-style: italic;
+  font-family: 'Lora', Georgia, serif;
+}
+
+.split-add-group-btn {
+  width: 100%;
+  background: none;
+  border: 1px dashed #3a2410;
+  border-radius: 8px;
+  color: #6a4820;
+  font-size: 12px;
+  font-family: 'Lora', Georgia, serif;
+  padding: 7px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: border-color 0.15s, color 0.15s;
+}
+.split-add-group-btn:hover { border-color: #c090e0; color: #c090e0; }

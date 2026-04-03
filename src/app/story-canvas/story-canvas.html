@@ -144,7 +144,7 @@
         >{{ node.label }}</text>
 
         <!-- Beschrijving (meerdere regels indien nodig) -->
-        @for (line of getDescriptionLines(node.description); track $index; let i = $index) {
+        @for (line of getDescriptionLines(getNodeDescription(node)); track $index; let i = $index) {
           <text
             [attr.x]="NODE_WIDTH / 2"
             [attr.y]="46 + i * 14"
@@ -459,6 +459,85 @@
     </div>
   }
 
+  <!-- ── Split overlay ── -->
+  @if (splitMode) {
+    <div class="picker-overlay" (click)="splitMode = null">
+      <div class="picker-panel picker-panel--split" (click)="$event.stopPropagation()">
+
+        <div class="picker-header">
+          <span class="picker-title">
+            <i class="fa-solid fa-scissors"></i> Groep opsplitsen
+          </span>
+          <button class="picker-close" (click)="splitMode = null">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <div class="split-instruction">
+          Sleep karakters naar de gewenste groep.
+        </div>
+
+        <div class="split-groups-scroll">
+          <div class="split-groups-row">
+            @for (group of splitMode.groups; track $index; let gi = $index) {
+              <div class="split-group"
+                (dragover)="$event.preventDefault()"
+                (drop)="$event.preventDefault(); onSplitDrop(gi)">
+
+                <div class="split-group-header">
+                  <span class="split-group-label">Groep {{ gi + 1 }}</span>
+                  @if (splitMode.groups.length > 2 && group.length === 0) {
+                    <button class="split-group-remove" (click)="removeSplitGroup(gi)" title="Verwijder lege groep">
+                      <i class="fa-solid fa-xmark"></i>
+                    </button>
+                  }
+                </div>
+
+                <div class="split-group-chars">
+                  @for (charId of group; track charId) {
+                    <div class="split-char-chip"
+                      draggable="true"
+                      (dragstart)="onSplitDragStart(charId, gi)"
+                      [style.--char-color]="getCharacter(charId)?.color">
+                      @if (getCharacter(charId)?.avatar) {
+                        <img class="split-char-avatar" [src]="getCharacter(charId)!.avatar" alt="" />
+                      } @else {
+                        <span class="split-char-initial"
+                          [style.background]="getCharacter(charId)?.color">
+                          {{ (getCharacter(charId)?.name ?? '?')[0] }}
+                        </span>
+                      }
+                      <span class="split-char-name">{{ getCharacter(charId)?.name }}</span>
+                      <i class="fa-solid fa-grip-lines split-char-drag-icon"></i>
+                    </div>
+                  }
+                  @if (group.length === 0) {
+                    <div class="split-drop-hint">Sleep hier naartoe</div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+
+        @if (splitMode && splitMode.groups.length < (splitModeNode?.characters?.length ?? 0)) {
+          <div class="picker-section">
+            <button class="split-add-group-btn" (click)="addSplitGroup()">
+              <i class="fa-solid fa-plus"></i> Nog een groep toevoegen
+            </button>
+          </div>
+        }
+
+        <div class="picker-section">
+          <button class="confirm-event-btn" [disabled]="!splitValid" (click)="confirmSplit()">
+            <i class="fa-solid fa-scissors"></i> Opsplitsen bevestigen
+          </button>
+        </div>
+
+      </div>
+    </div>
+  }
+
   <!-- ── Node menu overlay ── -->
   @if (nodeMenuId) {
     <div class="picker-overlay" (click)="nodeMenuId = null">
@@ -534,7 +613,7 @@
                         </span>
                       }
                     </div>
-                    <span class="group-label">{{ group.label }}</span>
+                    <span class="group-label">{{ getGroupLabel(group) }}</span>
                   </button>
                 }
               </div>
@@ -544,6 +623,15 @@
           @if (availableChars.length === 0 && mergeableGroups.length === 0) {
             <p class="picker-empty">Geen beschikbare karakters of groepen meer.</p>
           }
+        }
+
+        <!-- Opsplitsen (alleen leaf nodes met 2+ karakters) -->
+        @if (nodeMenuNode && isLeafNode(nodeMenuNode) && nodeMenuNode.characters.length >= 2) {
+          <div class="picker-section">
+            <button class="split-open-btn" (click)="openSplitMode()">
+              <i class="fa-solid fa-scissors"></i> Groep opsplitsen
+            </button>
+          </div>
         }
 
         <!-- Verwijderen (alleen niet-start nodes) -->

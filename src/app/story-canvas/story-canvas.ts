@@ -173,6 +173,7 @@ export class StoryCanvas implements OnChanges, AfterViewInit, OnDestroy {
   @Output() characterLeft    = new EventEmitter<{ fromNodeId: string; charId: string }>();
   @Output() characterMoved   = new EventEmitter<{ fromNodeId: string; charId: string; toNodeId: string }>();
   @Output() nodePositioned   = new EventEmitter<{ nodeId: string; x: number; y: number }>();
+  @Output() groupSplit       = new EventEmitter<{ fromNodeId: string; groups: string[][] }>();
 
   // ── Layout constanten ──────────────────────────────────────────────────────
   readonly NODE_WIDTH  = 190;
@@ -323,6 +324,64 @@ export class StoryCanvas implements OnChanges, AfterViewInit, OnDestroy {
   nodeMenuId: string | null   = null;
   availableChars: Character[] = [];
   mergeableGroups: StoryNode[] = [];
+
+  // ── Split mode state ──────────────────────────────────────────────────────
+  splitMode: { nodeId: string; groups: string[][] } | null = null;
+  private splitDragCharId: string | null = null;
+  private splitDragFromGroup = -1;
+
+  get splitModeNode(): StoryNode | undefined {
+    return this.nodes.find(n => n.id === this.splitMode?.nodeId);
+  }
+
+  openSplitMode(): void {
+    if (!this.nodeMenuId) return;
+    const node = this.nodeMenuNode;
+    if (!node || node.characters.length < 2) return;
+    this.splitMode = {
+      nodeId: this.nodeMenuId,
+      groups: [[node.characters[0]], [...node.characters.slice(1)]],
+    };
+    this.nodeMenuId = null;
+  }
+
+  addSplitGroup(): void {
+    if (!this.splitMode) return;
+    this.splitMode = { ...this.splitMode, groups: [...this.splitMode.groups, []] };
+  }
+
+  removeSplitGroup(gi: number): void {
+    if (!this.splitMode || this.splitMode.groups.length <= 2) return;
+    if (this.splitMode.groups[gi].length > 0) return; // eerst leegmaken
+    this.splitMode = { ...this.splitMode, groups: this.splitMode.groups.filter((_, i) => i !== gi) };
+  }
+
+  onSplitDragStart(charId: string, fromGroup: number): void {
+    this.splitDragCharId   = charId;
+    this.splitDragFromGroup = fromGroup;
+  }
+
+  onSplitDrop(toGroup: number): void {
+    if (!this.splitMode || this.splitDragCharId === null || this.splitDragFromGroup === toGroup) return;
+    const newGroups = this.splitMode.groups.map(g => [...g]);
+    newGroups[this.splitDragFromGroup] = newGroups[this.splitDragFromGroup].filter(id => id !== this.splitDragCharId);
+    newGroups[toGroup] = [...newGroups[toGroup], this.splitDragCharId!];
+    this.splitMode = { ...this.splitMode, groups: newGroups };
+    this.splitDragCharId    = null;
+    this.splitDragFromGroup = -1;
+  }
+
+  get splitValid(): boolean {
+    if (!this.splitMode) return false;
+    return this.splitMode.groups.filter(g => g.length > 0).length >= 2;
+  }
+
+  confirmSplit(): void {
+    if (!this.splitMode || !this.splitValid) return;
+    const groups = this.splitMode.groups.filter(g => g.length > 0);
+    this.groupSplit.emit({ fromNodeId: this.splitMode.nodeId, groups });
+    this.splitMode = null;
+  }
 
   // ── Karakter-dot picker state ─────────────────────────────────────────────
   charPicker: { nodeId: string; charId: string } | null = null;
@@ -584,6 +643,7 @@ export class StoryCanvas implements OnChanges, AfterViewInit, OnDestroy {
     event.stopPropagation();
     this.charPicker          = null;
     this.edgePicker          = null;
+    this.splitMode           = null;
     this.nodeMenuId          = nodeId;
     this.nodePickerEventType = 'event';
 
@@ -634,7 +694,8 @@ export class StoryCanvas implements OnChanges, AfterViewInit, OnDestroy {
 
   openCharPicker(nodeId: string, charId: string, event: MouseEvent): void {
     event.stopPropagation();
-    this.nodeMenuId = null; // sluit node menu
+    this.nodeMenuId = null;
+    this.splitMode  = null;
     this.charPicker = { nodeId, charId };
     this.charPickerMoveTargets = this.leafNodes.filter(n => n.id !== nodeId);
   }
@@ -688,11 +749,49 @@ export class StoryCanvas implements OnChanges, AfterViewInit, OnDestroy {
     this.nodeMenuId = null;
     this.charPicker = null;
     this.edgePicker = null;
+    this.splitMode  = null;
   }
 
   // ── Kleur hulpfuncties ─────────────────────────────────────────────────────
   getCharacter(id: string): Character | undefined {
     return this.characters.find(c => c.id === id);
+  }
+
+  getGroupLabel(node: { characters: string[] }): string {
+    return node.characters.map(id => this.getCharacter(id)?.name ?? id).join(', ');
+  }
+
+  /** Beschrijving op basis van actuele karakternamen (voor auto-gegenereerde nodes). */
+  getNodeDescription(node: StoryNode): string {
+    const party = (ids: string[]): string => {
+      const ns = ids.map(id => this.getCharacter(id)?.name ?? id);
+      if (ns.length === 1) return ns[0];
+      if (ns.length === 2) return `${ns[0]} en ${ns[1]}`;
+      return `${ns.slice(0, -1).join(', ')} en ${ns.at(-1)}`;
+    };
+
+    switch (node.type) {
+      case 'encounter': {
+        const joiners   = node.joiners ?? [];
+        const receivers = node.characters.filter(id => !joiners.includes(id));
+        if (!joiners.length || !receivers.length) return node.description;
+        if (node.label === 'Samenvoeging') {
+          const verb = joiners.length === 1 ? 'sluit zich aan bij' : 'sluiten zich aan bij';
+          return `${party(joiners)} ${verb} ${party(receivers)}`;
+        }
+        const verb = receivers.length === 1 ? 'ontmoet' : 'ontmoeten';
+        return `${party(receivers)} ${verb} ${party(joiners)}`;
+      }
+      case 'event': {
+        if (node.label === 'Vertrek' && node.joiners?.length) {
+          const verb = node.joiners.length === 1 ? 'verlaat' : 'verlaten';
+          return `${party(node.joiners)} ${verb} ${party(node.characters)}`;
+        }
+        return node.description;
+      }
+      default:
+        return node.description;
+    }
   }
 
   /** Kleur van de verhaallijns leidende personage — gebruikt voor node-achtergrond en -rand. */

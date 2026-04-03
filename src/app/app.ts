@@ -382,6 +382,7 @@ export class App implements OnInit {
     const newNode: StoryNode = {
       id: `leave-${Date.now()}`,
       characters: remaining,
+      joiners: [charId],
       label: 'Vertrek',
       description: `${char.name} verlaat ${this.party(remaining)}`,
       col: fromNode.col,
@@ -411,6 +412,7 @@ export class App implements OnInit {
     const departNode: StoryNode = {
       id: `depart-${ts}`,
       characters: remaining,
+      joiners: [charId],
       label: 'Vertrek',
       description: `${char.name} verlaat ${this.party(remaining)}`,
       col: fromNode.col,
@@ -436,6 +438,44 @@ export class App implements OnInit {
       { id: `e-${arriveNode.id}`,  from: toNodeId,      to: arriveNode.id },
       { id: `e-move-${ts}`,        from: departNode.id, to: arriveNode.id, type: 'character-move', charId },
     ];
+  }
+
+  /** Groep splitst op in meerdere subgroepen die elk verder gaan. */
+  onGroupSplit(event: { fromNodeId: string; groups: string[][] }): void {
+    this.snapshot();
+    const fromNode    = this.nodes.find(n => n.id === event.fromNodeId)!;
+    const validGroups = event.groups.filter(g => g.length > 0);
+    const insertRow   = fromNode.row + 1;
+
+    this.extraNodes = this.extraNodes.map(n =>
+      n.row >= insertRow ? { ...n, row: n.row + 1 } : n
+    );
+
+    const ts       = Date.now();
+    const spread   = (validGroups.length - 1) * 0.45;
+    const startCol = fromNode.col - spread / 2;
+
+    for (let i = 0; i < validGroups.length; i++) {
+      const group = validGroups[i];
+      const col   = startCol + i * (spread / Math.max(validGroups.length - 1, 1));
+
+      const splitNode: StoryNode = {
+        id:          `split-${ts}-${i}`,
+        characters:  group,
+        label:       'Opsplitsing',
+        description: group.length === 1 ? 'Gaat alleen verder' : 'Gaan samen verder',
+        col,
+        row:         insertRow,
+        type:        'split',
+      };
+
+      this.extraNodes = [...this.extraNodes, splitNode];
+      this.extraEdges = [...this.extraEdges, {
+        id:   `e-split-${ts}-${i}`,
+        from: event.fromNodeId,
+        to:   splitNode.id,
+      }];
+    }
   }
 
   /** Twee groepen smelten samen → gecombineerde groep. */
