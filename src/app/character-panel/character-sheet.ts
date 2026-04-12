@@ -5,7 +5,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import { ALL_ELEMENTS, ElementDef } from '../elements';
 import { Character, CharacterStats } from '../story.types';
-import { DEFAULT_WEAPONS, WeaponDef } from '../weapons';
+import { WeaponDef } from '../weapons';
 
 export { ALL_ELEMENTS } from '../elements';
 export type { ElementDef } from '../elements';
@@ -91,8 +91,8 @@ export class CharacterSheet implements OnInit, OnChanges {
   @Input() character!: Character;
   /** Extra custom elementen bovenop de 13 standaard. */
   @Input() customElements: ElementDef[] = [];
-  /** Extra custom wapens bovenop de standaard lijst. */
-  @Input() customWeapons: WeaponDef[] = [];
+  /** Volledige wapenlijst voor dit project. */
+  @Input() weapons: WeaponDef[] = [];
 
   @Output() saved  = new EventEmitter<Character>();
   @Output() closed = new EventEmitter<void>();
@@ -102,10 +102,7 @@ export class CharacterSheet implements OnInit, OnChanges {
   // De 13 standaard elementen worden altijd getoond in de resistentie-sectie
   readonly defaultElements = ALL_ELEMENTS;
 
-  /** Alle wapens: standaard + custom. */
-  get allWeapons(): WeaponDef[] {
-    return [...DEFAULT_WEAPONS, ...this.customWeapons];
-  }
+  get allWeapons(): WeaponDef[] { return this.weapons; }
   readonly coreStats     = CORE_STATS;
   readonly staggerStats  = STAGGER_STATS;
   readonly statusResist  = STATUS_RESISTANCES;

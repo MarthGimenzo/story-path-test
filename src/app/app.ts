@@ -7,7 +7,7 @@ import { ElementsPanel } from './elements-panel/elements-panel';
 import { SettingsSidebar } from './settings-sidebar/settings-sidebar';
 import { StoryCanvas } from './story-canvas/story-canvas';
 import { Chapter, Character, StoryEdge, StoryNode } from './story.types';
-import { WeaponDef } from './weapons';
+import { DEFAULT_WEAPONS, WeaponDef } from './weapons';
 import { WeaponsPanel } from './weapons-panel/weapons-panel';
 
 type NodeOverrides = Record<string, { x: number; y: number }>;
@@ -23,7 +23,7 @@ interface ProjectData extends Snapshot {
   characters:     Character[];
   chapters:       Chapter[];
   customElements?: ElementDef[];
-  customWeapons?:  WeaponDef[];
+  weapons?:        WeaponDef[];
 }
 
 @Component({
@@ -40,7 +40,7 @@ export class App implements OnInit {
   weaponsOpen     = false;
   editingCharacter: Character | null = null;
   customElements: ElementDef[] = [];
-  customWeapons: WeaponDef[] = [];
+  weapons: WeaponDef[] = [...DEFAULT_WEAPONS];
   nodeOverrides: NodeOverrides = {};
   selectedStarters = new Set<string>();
   characters: Character[] = [];
@@ -131,7 +131,7 @@ export class App implements OnInit {
       this.characters      = snap.characters ?? [];
       this.chapters        = snap.chapters ?? [{ label: 'Begin', height: 220 }];
       this.customElements  = snap.customElements ?? [];
-      this.customWeapons   = snap.customWeapons ?? [];
+      this.weapons         = snap.weapons ?? [...DEFAULT_WEAPONS];
       this.selectedStarters = new Set(snap.starters ?? []);
       this.extraNodes    = snap.nodes ?? [];
       this.extraEdges    = snap.edges ?? [];
@@ -146,7 +146,7 @@ export class App implements OnInit {
       characters:     this.characters,
       chapters:       this.chapters,
       customElements: this.customElements,
-      customWeapons:  this.customWeapons,
+      weapons:        this.weapons,
       starters:       [...this.selectedStarters],
       nodes:          this.extraNodes,
       edges:          this.extraEdges,
@@ -167,7 +167,7 @@ export class App implements OnInit {
     this.characters       = snap.characters ?? [];
     this.chapters         = snap.chapters ?? [{ label: 'Begin', height: 220 }];
     this.customElements   = snap.customElements ?? [];
-    this.customWeapons    = snap.customWeapons ?? [];
+    this.weapons          = snap.weapons ?? [...DEFAULT_WEAPONS];
     this.selectedStarters = new Set(snap.starters ?? []);
     this.extraNodes       = snap.nodes ?? [];
     this.extraEdges       = snap.edges ?? [];
@@ -196,7 +196,7 @@ export class App implements OnInit {
     this.characters       = [];
     this.chapters         = [{ label: 'Begin', height: 220 }];
     this.customElements   = [];
-    this.customWeapons    = [];
+    this.weapons          = [...DEFAULT_WEAPONS];
     this.selectedStarters = new Set();
     this.extraNodes       = [];
     this.extraEdges       = [];
@@ -231,8 +231,8 @@ export class App implements OnInit {
     this.customElements = elements;
   }
 
-  onCustomWeaponsChanged(weapons: WeaponDef[]): void {
-    this.customWeapons = weapons;
+  onWeaponsChanged(weapons: WeaponDef[]): void {
+    this.weapons = weapons;
   }
 
   onChaptersChanged(chapters: Chapter[]): void {

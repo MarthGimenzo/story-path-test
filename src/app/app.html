@@ -9,74 +9,81 @@
   />
 
   <header class="header">
-    <span class="header-icon">⚔</span>
-    <div class="header-text">
-      <h1 class="header-title">Story Path</h1>
-      <p class="header-sub">JRPG verhaallijn visualisatie</p>
-    </div>
 
-    <!-- Projectnaam (bewerkbaar) -->
-    <input class="project-name-input"
-           [(ngModel)]="currentProject"
-           title="Projectnaam (klik om te wijzigen)" />
+    <!-- Bovenste rij: projectbeheer -->
+    <div class="header-row header-row--top">
+      <span class="header-icon">⚔</span>
+      <div class="header-text">
+        <h1 class="header-title">Story Path</h1>
+        <p class="header-sub">JRPG verhaallijn visualisatie</p>
+      </div>
 
-    <!-- Projecten-dropdown -->
-    <div class="project-dropdown-wrap">
-      <button class="settings-btn" (click)="projectsOpen = !projectsOpen" title="Projecten beheren">
-        <i class="fa-solid fa-folder-open"></i>
-        Projecten
-      </button>
-      @if (projectsOpen) {
-        <div class="project-dropdown" (click)="$event.stopPropagation()">
-          @if (projectList.length === 0) {
-            <p class="project-empty">Nog niets opgeslagen.</p>
-          }
-          @for (name of projectList; track name) {
-            <button class="project-item" [class.project-item--active]="name === currentProject"
-                    (click)="loadProject(name)">
-              <i class="fa-solid fa-scroll"></i>
-              <span class="project-item-name">{{ name }}</span>
-              <span class="project-item-delete" (click)="deleteProject(name, $event)" title="Verwijder project">
-                <i class="fa-solid fa-trash-can"></i>
-              </span>
+      <input class="project-name-input"
+             [(ngModel)]="currentProject"
+             title="Projectnaam (klik om te wijzigen)" />
+
+      <div class="project-dropdown-wrap">
+        <button class="settings-btn" (click)="projectsOpen = !projectsOpen" title="Projecten beheren">
+          <i class="fa-solid fa-folder-open"></i>
+          Projecten
+        </button>
+        @if (projectsOpen) {
+          <div class="project-dropdown" (click)="$event.stopPropagation()">
+            @if (projectList.length === 0) {
+              <p class="project-empty">Nog niets opgeslagen.</p>
+            }
+            @for (name of projectList; track name) {
+              <button class="project-item" [class.project-item--active]="name === currentProject"
+                      (click)="loadProject(name)">
+                <i class="fa-solid fa-scroll"></i>
+                <span class="project-item-name">{{ name }}</span>
+                <span class="project-item-delete" (click)="deleteProject(name, $event)" title="Verwijder project">
+                  <i class="fa-solid fa-trash-can"></i>
+                </span>
+              </button>
+            }
+            <button class="project-new-btn" (click)="newProject()">
+              <i class="fa-solid fa-plus"></i> Nieuw project
             </button>
-          }
-          <button class="project-new-btn" (click)="newProject()">
-            <i class="fa-solid fa-plus"></i> Nieuw project
-          </button>
-        </div>
-      }
+          </div>
+        }
+      </div>
+
+      <button class="settings-btn" [class.settings-btn--saved]="saveLabel !== 'Opslaan'"
+              (click)="save()" title="Verhaallijn opslaan in browser">
+        <i class="fa-solid fa-floppy-disk"></i>
+        {{ saveLabel }}
+      </button>
+      <button class="settings-btn" [disabled]="!canUndo" (click)="undo()" title="Laatste stap ongedaan maken">
+        <i class="fa-solid fa-rotate-left"></i>
+        Ongedaan
+      </button>
+      <button class="settings-btn" [disabled]="!canRedo" (click)="redo()" title="Opnieuw uitvoeren">
+        <i class="fa-solid fa-rotate-right"></i>
+        Opnieuw
+      </button>
     </div>
 
-    <button class="settings-btn" [class.settings-btn--saved]="saveLabel !== 'Opslaan'"
-            (click)="save()" title="Verhaallijn opslaan in browser">
-      <i class="fa-solid fa-floppy-disk"></i>
-      {{ saveLabel }}
-    </button>
-    <button class="settings-btn" [disabled]="!canUndo" (click)="undo()" title="Laatste stap ongedaan maken">
-      <i class="fa-solid fa-rotate-left"></i>
-      Ongedaan
-    </button>
-    <button class="settings-btn" [disabled]="!canRedo" (click)="redo()" title="Opnieuw uitvoeren">
-      <i class="fa-solid fa-rotate-right"></i>
-      Opnieuw
-    </button>
-    <button class="settings-btn" (click)="elementsOpen = true" title="Elementen beheren">
-      <i class="fa-solid fa-wand-magic-sparkles"></i>
-      Elementen
-    </button>
-    <button class="settings-btn" (click)="weaponsOpen = true" title="Wapens beheren">
-      <i class="fa-solid fa-sword"></i>
-      Wapens
-    </button>
-    <button class="settings-btn" (click)="charactersOpen = true" title="Karakters beheren">
-      <i class="fa-solid fa-masks-theater"></i>
-      Karakters
-    </button>
-    <button class="settings-btn" (click)="settingsOpen = true" title="Verhaallijnen beheren">
-      <i class="fa-solid fa-map"></i>
-      Verhaallijnen
-    </button>
+    <!-- Onderste rij: projectinhoud -->
+    <div class="header-row header-row--bottom">
+      <button class="settings-btn" (click)="elementsOpen = true" title="Elementen beheren">
+        <i class="fa-solid fa-wand-magic-sparkles"></i>
+        Elementen
+      </button>
+      <button class="settings-btn" (click)="weaponsOpen = true" title="Wapens beheren">
+        <i class="fa-solid fa-khanda"></i>
+        Wapens
+      </button>
+      <button class="settings-btn" (click)="charactersOpen = true" title="Karakters beheren">
+        <i class="fa-solid fa-masks-theater"></i>
+        Karakters
+      </button>
+      <button class="settings-btn" (click)="settingsOpen = true" title="Verhaallijnen beheren">
+        <i class="fa-solid fa-map"></i>
+        Verhaallijnen
+      </button>
+    </div>
+
   </header>
 
   <!-- Klik buiten dropdown sluit hem -->
@@ -92,9 +99,9 @@
   />
 
   <app-weapons-panel
-    [customWeapons]="customWeapons"
+    [weapons]="weapons"
     [open]="weaponsOpen"
-    (customWeaponsChanged)="onCustomWeaponsChanged($event)"
+    (weaponsChanged)="onWeaponsChanged($event)"
     (closed)="weaponsOpen = false"
   />
 
@@ -110,7 +117,7 @@
     <app-character-sheet
       [character]="editingCharacter"
       [customElements]="customElements"
-      [customWeapons]="customWeapons"
+      [weapons]="weapons"
       (saved)="onCharacterSheetSaved($event)"
       (closed)="onCharacterSheetClosed()"
     />
