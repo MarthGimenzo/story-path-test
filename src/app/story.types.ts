@@ -50,9 +50,9 @@ export interface Character {
   avatar?: string;        // base64 data-URL
   fullBodyPhoto?: string; // base64 data-URL
   description?: string;
-  element1?: ElementType;
-  element2?: ElementType;
-  weaponType?: WeaponType;
+  element1?: string;      // ElementType key of custom element key
+  element2?: string;
+  weaponType?: string;
   itemSlots?: number;
   stats?: CharacterStats;
 }

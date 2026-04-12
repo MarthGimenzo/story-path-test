@@ -1,0 +1,93 @@
+@if (open) {
+  <div class="wp-backdrop" (click)="closed.emit()"></div>
+}
+
+<aside class="wp-panel" [class.open]="open">
+
+  <div class="wp-header">
+    <span class="wp-title">
+      <i class="fa-solid fa-sword"></i> Wapens
+    </span>
+    <button class="wp-close" (click)="closed.emit()" title="Sluiten">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+  </div>
+
+  <div class="wp-scroll">
+
+    <!-- ── Standaard wapens ── -->
+    <div class="wp-section-header">
+      <i class="fa-solid fa-lock wp-section-lock"></i>
+      Standaard Wapens
+    </div>
+
+    <div class="wp-list">
+      @for (w of defaultWeapons; track w.key) {
+        <div class="wp-item wp-item--default">
+          <span class="wp-item-label">{{ w.label }}</span>
+        </div>
+      }
+    </div>
+
+    <!-- ── Eigen wapens ── -->
+    <div class="wp-section-header wp-section-header--custom">
+      <i class="fa-solid fa-pen-to-square"></i>
+      Eigen Wapens
+    </div>
+
+    <div class="wp-list wp-list--custom">
+      @if (customWeapons.length === 0 && !addingNew) {
+        <p class="wp-empty">Nog geen eigen wapens.<br>Voeg er hieronder een toe.</p>
+      }
+
+      @for (w of customWeapons; track w.key) {
+        @if (editingKey === w.key) {
+          <div class="wp-edit-form" (click)="$event.stopPropagation()">
+            <input class="wp-input" [(ngModel)]="editLabel"
+                   placeholder="Naam wapen" maxlength="40"
+                   (keydown.enter)="saveEdit()" (keydown.escape)="cancelEdit()">
+            <div class="wp-form-actions">
+              <button class="wp-btn-cancel" (click)="cancelEdit()">Annuleer</button>
+              <button class="wp-btn-save" (click)="saveEdit()">Opslaan</button>
+            </div>
+          </div>
+        } @else {
+          <div class="wp-item wp-item--custom">
+            <span class="wp-item-label">{{ w.label }}</span>
+            <button class="wp-item-btn wp-item-edit"
+                    (click)="startEdit(w, $event)" title="Bewerk">
+              <i class="fa-solid fa-pen-to-square"></i>
+            </button>
+            <button class="wp-item-btn wp-item-delete"
+                    (click)="removeWeapon(w.key)" title="Verwijder">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </div>
+        }
+      }
+    </div>
+
+    <!-- ── Nieuw wapen toevoegen ── -->
+    @if (addingNew) {
+      <div class="wp-edit-form wp-add-form" (click)="$event.stopPropagation()">
+        <input class="wp-input" [(ngModel)]="newLabel"
+               placeholder="Naam wapen" maxlength="40"
+               (keydown.enter)="saveNew()" (keydown.escape)="cancelAdding()">
+        <div class="wp-form-actions">
+          <button class="wp-btn-cancel" (click)="cancelAdding()">Annuleer</button>
+          <button class="wp-btn-save" (click)="saveNew()">
+            <i class="fa-solid fa-plus"></i> Toevoegen
+          </button>
+        </div>
+      </div>
+    }
+
+  </div><!-- /wp-scroll -->
+
+  <div class="wp-footer">
+    <button class="wp-add-btn" (click)="startAdding()" [disabled]="addingNew">
+      <i class="fa-solid fa-plus"></i> Nieuw wapen
+    </button>
+  </div>
+
+</aside>

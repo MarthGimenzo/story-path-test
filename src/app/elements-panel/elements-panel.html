@@ -1,0 +1,146 @@
+@if (open) {
+  <div class="ep-backdrop" (click)="closed.emit()"></div>
+}
+
+<aside class="ep-panel" [class.open]="open">
+
+  <div class="ep-header">
+    <span class="ep-title">
+      <i class="fa-solid fa-wand-magic-sparkles"></i> Elementen
+    </span>
+    <button class="ep-close" (click)="closed.emit()" title="Sluiten">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+  </div>
+
+  <div class="ep-scroll">
+
+    <!-- ── Standaard elementen ── -->
+    <div class="ep-section-header">
+      <i class="fa-solid fa-lock ep-section-lock"></i>
+      Standaard Elementen
+    </div>
+
+    <div class="ep-list">
+      @for (el of defaultElements; track el.key) {
+        <div class="ep-item ep-item--default"
+             [class.ep-item--open]="expandedKey === el.key"
+             (click)="toggleExpand(el.key, $event)">
+          <div class="ep-item-row">
+            <span class="ep-elem-dot" [style.background]="el.bg" [style.color]="el.color">
+              <i class="fa-solid {{ el.icon }}"></i>
+            </span>
+            <span class="ep-elem-name" [style.color]="el.color">{{ el.label }}</span>
+            <i class="fa-solid fa-chevron-down ep-chevron"
+               [class.ep-chevron--open]="expandedKey === el.key"></i>
+          </div>
+          @if (expandedKey === el.key) {
+            <p class="ep-elem-desc">{{ el.description }}</p>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- ── Custom elementen ── -->
+    <div class="ep-section-header ep-section-header--custom">
+      <i class="fa-solid fa-pen-to-square"></i>
+      Eigen Elementen
+    </div>
+
+    <div class="ep-list ep-list--custom">
+      @if (customElements.length === 0 && !addingNew) {
+        <p class="ep-empty">Nog geen eigen elementen.<br>Voeg er hieronder een toe.</p>
+      }
+
+      @for (el of customElements; track el.key) {
+        @if (editingKey === el.key) {
+          <!-- Edit form -->
+          <div class="ep-edit-form" (click)="$event.stopPropagation()">
+            <div class="ep-form-preview"
+                 [style.color]="editDraft.color"
+                 [style.background]="'transparent'">
+              <i class="fa-solid {{ editDraft.icon || 'fa-star' }}"></i>
+            </div>
+            <div class="ep-form-fields">
+              <input class="ep-input" [(ngModel)]="editDraft.label"
+                     placeholder="Naam element" maxlength="30">
+              <div class="ep-form-row">
+                <input class="ep-input ep-input-icon"
+                       [(ngModel)]="editDraft.icon"
+                       placeholder="fa-star" maxlength="40">
+                <input type="color" class="ep-color"
+                       [(ngModel)]="editDraft.color"
+                       title="Kleur">
+              </div>
+              <textarea class="ep-textarea" [(ngModel)]="editDraft.description"
+                        rows="3" placeholder="Beschrijving…"></textarea>
+              <div class="ep-form-actions">
+                <button class="ep-btn-cancel" (click)="cancelEdit()">Annuleer</button>
+                <button class="ep-btn-save" (click)="saveEdit()">Opslaan</button>
+              </div>
+            </div>
+          </div>
+        } @else {
+          <div class="ep-item ep-item--custom">
+            <div class="ep-item-row">
+              <span class="ep-elem-dot" [style.background]="el.bg" [style.color]="el.color">
+                <i class="fa-solid {{ el.icon }}"></i>
+              </span>
+              <div class="ep-item-info">
+                <span class="ep-elem-name" [style.color]="el.color">{{ el.label }}</span>
+                @if (el.description) {
+                  <span class="ep-elem-subdesc">{{ el.description }}</span>
+                }
+              </div>
+              <button class="ep-item-btn ep-item-edit"
+                      (click)="startEdit(el, $event)" title="Bewerk">
+                <i class="fa-solid fa-pen-to-square"></i>
+              </button>
+              <button class="ep-item-btn ep-item-delete"
+                      (click)="removeCustom(el.key)" title="Verwijder">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
+          </div>
+        }
+      }
+    </div>
+
+    <!-- ── Nieuw element toevoegen ── -->
+    @if (addingNew) {
+      <div class="ep-edit-form ep-add-form" (click)="$event.stopPropagation()">
+        <div class="ep-form-preview" [style.color]="newDraft.color">
+          <i class="fa-solid {{ newDraft.icon || 'fa-star' }}"></i>
+        </div>
+        <div class="ep-form-fields">
+          <input class="ep-input" [(ngModel)]="newDraft.label"
+                 placeholder="Naam element" maxlength="30">
+          <div class="ep-form-row">
+            <input class="ep-input ep-input-icon"
+                   [(ngModel)]="newDraft.icon"
+                   placeholder="fa-star" maxlength="40">
+            <input type="color" class="ep-color"
+                   [(ngModel)]="newDraft.color"
+                   (change)="onNewColorChange(newDraft.color!)"
+                   title="Kleur">
+          </div>
+          <textarea class="ep-textarea" [(ngModel)]="newDraft.description"
+                    rows="3" placeholder="Beschrijving… (optioneel)"></textarea>
+          <div class="ep-form-actions">
+            <button class="ep-btn-cancel" (click)="cancelAdding()">Annuleer</button>
+            <button class="ep-btn-save" (click)="saveNew()">
+              <i class="fa-solid fa-plus"></i> Toevoegen
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+  </div><!-- /ep-scroll -->
+
+  <div class="ep-footer">
+    <button class="ep-add-btn" (click)="startAdding()" [disabled]="addingNew">
+      <i class="fa-solid fa-plus"></i> Nieuw element
+    </button>
+  </div>
+
+</aside>

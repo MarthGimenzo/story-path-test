@@ -1,5 +1,5 @@
 <div class="cs-overlay" (click)="close()" (keydown)="onOverlayKey($event)" tabindex="-1">
-  <div class="cs-modal" (click)="$event.stopPropagation(); closePickers()">
+  <div class="cs-modal" (click)="$event.stopPropagation(); closeDropdowns()">
 
     <!-- ── Header ──────────────────────────────────────────────────────────── -->
     <div class="cs-header">
@@ -32,7 +32,6 @@
         <div class="cs-col-photos">
           <div class="cs-photo-label-above">Avatar</div>
 
-          <!-- Avatar drop zone -->
           <div class="cs-photo-zone cs-avatar-zone"
                [class.cs-drag-over]="avatarDragOver"
                (click)="avatarInput.click()"
@@ -58,7 +57,6 @@
 
           <div class="cs-photo-label-above cs-photo-label-body">Full Body</div>
 
-          <!-- Full body drop zone -->
           <div class="cs-photo-zone cs-fullbody-zone"
                [class.cs-drag-over]="fullBodyDragOver"
                (click)="fullBodyInput.click()"
@@ -86,7 +84,6 @@
         <!-- Kolom 2: Karakter info ------------------------------------------- -->
         <div class="cs-col-info">
 
-          <!-- Naam & achternaam -->
           <div class="cs-field-row">
             <div class="cs-field">
               <label class="cs-label">Naam</label>
@@ -100,7 +97,6 @@
             </div>
           </div>
 
-          <!-- Kleur, item vakjes, wapen -->
           <div class="cs-field-row">
             <div class="cs-field cs-field-narrow">
               <label class="cs-label">Kleur</label>
@@ -115,7 +111,7 @@
             <div class="cs-field cs-field-grow">
               <label class="cs-label">Wapentype</label>
               <select class="cs-select" [(ngModel)]="draft.weaponType">
-                @for (wt of weaponTypes; track wt.key) {
+                @for (wt of allWeapons; track wt.key) {
                   <option [value]="wt.key">{{ wt.label }}</option>
                 }
               </select>
@@ -138,8 +134,7 @@
                         [style.color]="element1Def.color">
                     <i class="fa-solid {{ element1Def.icon }}"></i>
                   </span>
-                  <span class="cs-elem-trigger-label"
-                        [style.color]="element1Def.color">
+                  <span class="cs-elem-trigger-label" [style.color]="element1Def.color">
                     {{ element1Def.label }}
                   </span>
                 } @else {
@@ -157,13 +152,12 @@
                           (click)="selectElement1(undefined)">
                     <i class="fa-solid fa-ban"></i> Geen
                   </button>
-                  @for (el of elements; track el.key) {
+                  @for (el of pickerElements; track el.key) {
                     <button class="cs-elem-option"
                             [class.cs-elem-option--active]="draft.element1 === el.key"
                             [style.background]="draft.element1 === el.key ? el.bg : ''"
                             (click)="selectElement1(el.key)">
-                      <i class="fa-solid {{ el.icon }}"
-                         [style.color]="el.color"></i>
+                      <i class="fa-solid {{ el.icon }}" [style.color]="el.color"></i>
                       <span [style.color]="el.color">{{ el.label }}</span>
                     </button>
                   }
@@ -184,8 +178,7 @@
                         [style.color]="element2Def.color">
                     <i class="fa-solid {{ element2Def.icon }}"></i>
                   </span>
-                  <span class="cs-elem-trigger-label"
-                        [style.color]="element2Def.color">
+                  <span class="cs-elem-trigger-label" [style.color]="element2Def.color">
                     {{ element2Def.label }}
                   </span>
                 } @else {
@@ -203,13 +196,12 @@
                           (click)="selectElement2(undefined)">
                     <i class="fa-solid fa-ban"></i> Geen
                   </button>
-                  @for (el of elements; track el.key) {
+                  @for (el of pickerElements; track el.key) {
                     <button class="cs-elem-option"
                             [class.cs-elem-option--active]="draft.element2 === el.key"
                             [style.background]="draft.element2 === el.key ? el.bg : ''"
                             (click)="selectElement2(el.key)">
-                      <i class="fa-solid {{ el.icon }}"
-                         [style.color]="el.color"></i>
+                      <i class="fa-solid {{ el.icon }}" [style.color]="el.color"></i>
                       <span [style.color]="el.color">{{ el.label }}</span>
                     </button>
                   }
@@ -294,15 +286,20 @@
         <div class="cs-resist-block">
           <div class="cs-resist-title">
             <i class="fa-solid fa-shield-halved"></i> Elementaire Resistentie
+            <span class="cs-resist-hint">
+              <i class="fa-solid fa-circle-info"></i> klik voor beschrijving
+            </span>
           </div>
           <div class="cs-resist-grid">
-            @for (el of elements; track el.key) {
-              <div class="cs-resist-row">
+            @for (el of defaultElements; track el.key) {
+              <!-- Rij: klikbaar voor popover -->
+              <div class="cs-resist-row cs-resist-row--clickable"
+                   (click)="togglePopover(el.key, $event)">
                 <span class="cs-resist-icon" [style.color]="el.color">
                   <i class="fa-solid {{ el.icon }}"></i>
                 </span>
                 <span class="cs-resist-name">{{ el.label }}</span>
-                <div class="cs-stat-bar-wrap cs-resist-bar">
+                <div class="cs-stat-bar-wrap cs-resist-bar" (click)="stopProp($event)">
                   <div class="cs-stat-bar-track">
                     <div class="cs-stat-bar-fill"
                          [style.width.%]="getElemResist(el.key)"
@@ -314,9 +311,27 @@
                          (ngModelChange)="setElemResist(el.key, $event)">
                 </div>
                 <input type="number" min="0" max="100" class="cs-stat-num"
+                       (click)="stopProp($event)"
                        [ngModel]="getElemResist(el.key)"
                        (ngModelChange)="setElemResist(el.key, $event)">
               </div>
+
+              <!-- Inline popover -->
+              @if (activePopoverKey === el.key) {
+                <div class="cs-elem-popover" (click)="stopProp($event)">
+                  <button class="cs-elem-popover-close" (click)="activePopoverKey = null">
+                    <i class="fa-solid fa-xmark"></i>
+                  </button>
+                  <div class="cs-elem-popover-icon" [style.color]="el.color"
+                       [style.background]="el.bg">
+                    <i class="fa-solid {{ el.icon }}"></i>
+                  </div>
+                  <div class="cs-elem-popover-name" [style.color]="el.color">
+                    {{ el.label }}
+                  </div>
+                  <p class="cs-elem-popover-desc">{{ el.description }}</p>
+                </div>
+              }
             }
           </div>
         </div>

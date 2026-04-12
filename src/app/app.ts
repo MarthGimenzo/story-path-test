@@ -2,9 +2,13 @@ import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CharacterPanel } from './character-panel/character-panel';
 import { CharacterSheet } from './character-panel/character-sheet';
+import { ElementDef } from './elements';
+import { ElementsPanel } from './elements-panel/elements-panel';
 import { SettingsSidebar } from './settings-sidebar/settings-sidebar';
 import { StoryCanvas } from './story-canvas/story-canvas';
 import { Chapter, Character, StoryEdge, StoryNode } from './story.types';
+import { WeaponDef } from './weapons';
+import { WeaponsPanel } from './weapons-panel/weapons-panel';
 
 type NodeOverrides = Record<string, { x: number; y: number }>;
 
@@ -16,8 +20,10 @@ interface Snapshot {
 }
 
 interface ProjectData extends Snapshot {
-  characters: Character[];
-  chapters:   Chapter[];
+  characters:     Character[];
+  chapters:       Chapter[];
+  customElements?: ElementDef[];
+  customWeapons?:  WeaponDef[];
 }
 
 @Component({
@@ -25,12 +31,16 @@ interface ProjectData extends Snapshot {
   templateUrl: './app.html',
   styleUrl: './app.css',
   standalone: true,
-  imports: [SettingsSidebar, StoryCanvas, CharacterPanel, CharacterSheet, FormsModule],
+  imports: [SettingsSidebar, StoryCanvas, CharacterPanel, CharacterSheet, ElementsPanel, WeaponsPanel, FormsModule],
 })
 export class App implements OnInit {
   settingsOpen    = false;
   charactersOpen  = false;
+  elementsOpen    = false;
+  weaponsOpen     = false;
   editingCharacter: Character | null = null;
+  customElements: ElementDef[] = [];
+  customWeapons: WeaponDef[] = [];
   nodeOverrides: NodeOverrides = {};
   selectedStarters = new Set<string>();
   characters: Character[] = [];
@@ -120,6 +130,8 @@ export class App implements OnInit {
       const snap = all[name];
       this.characters      = snap.characters ?? [];
       this.chapters        = snap.chapters ?? [{ label: 'Begin', height: 220 }];
+      this.customElements  = snap.customElements ?? [];
+      this.customWeapons   = snap.customWeapons ?? [];
       this.selectedStarters = new Set(snap.starters ?? []);
       this.extraNodes    = snap.nodes ?? [];
       this.extraEdges    = snap.edges ?? [];
@@ -131,12 +143,14 @@ export class App implements OnInit {
   save(): void {
     const all = this.getAllProjects();
     all[this.currentProject] = {
-      characters: this.characters,
-      chapters:   this.chapters,
-      starters:   [...this.selectedStarters],
-      nodes:      this.extraNodes,
-      edges:      this.extraEdges,
-      overrides:  this.nodeOverrides,
+      characters:     this.characters,
+      chapters:       this.chapters,
+      customElements: this.customElements,
+      customWeapons:  this.customWeapons,
+      starters:       [...this.selectedStarters],
+      nodes:          this.extraNodes,
+      edges:          this.extraEdges,
+      overrides:      this.nodeOverrides,
     };
     localStorage.setItem(this.PROJECTS_KEY, JSON.stringify(all));
     localStorage.setItem(this.CURRENT_KEY, this.currentProject);
@@ -152,6 +166,8 @@ export class App implements OnInit {
     this.currentProject   = name;
     this.characters       = snap.characters ?? [];
     this.chapters         = snap.chapters ?? [{ label: 'Begin', height: 220 }];
+    this.customElements   = snap.customElements ?? [];
+    this.customWeapons    = snap.customWeapons ?? [];
     this.selectedStarters = new Set(snap.starters ?? []);
     this.extraNodes       = snap.nodes ?? [];
     this.extraEdges       = snap.edges ?? [];
@@ -179,6 +195,8 @@ export class App implements OnInit {
     this.currentProject   = 'Nieuw verhaal';
     this.characters       = [];
     this.chapters         = [{ label: 'Begin', height: 220 }];
+    this.customElements   = [];
+    this.customWeapons    = [];
     this.selectedStarters = new Set();
     this.extraNodes       = [];
     this.extraEdges       = [];
@@ -207,6 +225,14 @@ export class App implements OnInit {
 
   onCharacterSheetClosed(): void {
     this.editingCharacter = null;
+  }
+
+  onCustomElementsChanged(elements: ElementDef[]): void {
+    this.customElements = elements;
+  }
+
+  onCustomWeaponsChanged(weapons: WeaponDef[]): void {
+    this.customWeapons = weapons;
   }
 
   onChaptersChanged(chapters: Chapter[]): void {

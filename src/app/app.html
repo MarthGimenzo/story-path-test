@@ -61,6 +61,14 @@
       <i class="fa-solid fa-rotate-right"></i>
       Opnieuw
     </button>
+    <button class="settings-btn" (click)="elementsOpen = true" title="Elementen beheren">
+      <i class="fa-solid fa-wand-magic-sparkles"></i>
+      Elementen
+    </button>
+    <button class="settings-btn" (click)="weaponsOpen = true" title="Wapens beheren">
+      <i class="fa-solid fa-sword"></i>
+      Wapens
+    </button>
     <button class="settings-btn" (click)="charactersOpen = true" title="Karakters beheren">
       <i class="fa-solid fa-masks-theater"></i>
       Karakters
@@ -76,6 +84,20 @@
     <div class="projects-backdrop" (click)="projectsOpen = false"></div>
   }
 
+  <app-elements-panel
+    [customElements]="customElements"
+    [open]="elementsOpen"
+    (customElementsChanged)="onCustomElementsChanged($event)"
+    (closed)="elementsOpen = false"
+  />
+
+  <app-weapons-panel
+    [customWeapons]="customWeapons"
+    [open]="weaponsOpen"
+    (customWeaponsChanged)="onCustomWeaponsChanged($event)"
+    (closed)="weaponsOpen = false"
+  />
+
   <app-character-panel
     [characters]="characters"
     [open]="charactersOpen"
@@ -87,6 +109,8 @@
   @if (editingCharacter) {
     <app-character-sheet
       [character]="editingCharacter"
+      [customElements]="customElements"
+      [customWeapons]="customWeapons"
       (saved)="onCharacterSheetSaved($event)"
       (closed)="onCharacterSheetClosed()"
     />

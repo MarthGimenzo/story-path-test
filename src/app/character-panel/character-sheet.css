@@ -643,6 +643,17 @@
   gap: 8px;
 }
 
+.cs-resist-row--clickable {
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 2px 4px;
+  margin: -2px -4px;
+  transition: background 0.15s;
+}
+.cs-resist-row--clickable:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
 .cs-resist-icon {
   width: 18px;
   text-align: center;
@@ -666,4 +677,79 @@
 
 .cs-resist-bar {
   flex: 1;
+}
+
+.cs-resist-hint {
+  margin-left: auto;
+  font-family: 'Lora', Georgia, serif;
+  font-size: 9px;
+  font-style: italic;
+  color: #3a2410;
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 400;
+}
+
+/* ── Inline element popover ── */
+.cs-elem-popover {
+  position: relative;
+  background: #130d05;
+  border: 1px solid #6a4820;
+  border-radius: 10px;
+  padding: 14px 16px 14px 14px;
+  margin: 4px 0 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(232,168,64,0.06);
+  animation: cs-popover-in 0.15s ease;
+}
+
+@keyframes cs-popover-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.cs-elem-popover-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  color: #4a2e10;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 5px;
+  border-radius: 4px;
+  transition: color 0.15s;
+}
+.cs-elem-popover-close:hover { color: #e8a840; }
+
+.cs-elem-popover-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.cs-elem-popover-name {
+  font-family: 'Cinzel', Georgia, serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  line-height: 1;
+}
+
+.cs-elem-popover-desc {
+  font-family: 'Lora', Georgia, serif;
+  font-size: 12px;
+  font-style: italic;
+  color: #9a7248;
+  line-height: 1.6;
+  margin: 0;
+  max-width: 300px;
 }

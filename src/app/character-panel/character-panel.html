@@ -26,42 +26,49 @@
     }
 
     @for (char of characters; track char.id) {
-      <div class="cp-row">
+      <div class="cp-row" (click)="editRequested.emit(char)" [title]="'Bewerk ' + char.name">
 
-        <!-- Avatar -->
+        <!-- Avatar (alleen weergave) -->
         <div class="cp-avatar-wrap">
-          <label class="cp-avatar-label" [title]="'Afbeelding uploaden'">
-            @if (char.avatar) {
-              <img [src]="char.avatar" class="cp-avatar-img" alt=""/>
-            } @else {
-              <span class="cp-avatar-placeholder" [style.background]="char.color">
-                {{ char.name[0] || '?' }}
-              </span>
-            }
-            <span class="cp-avatar-overlay"><i class="fa-solid fa-camera"></i></span>
-            <input type="file" accept="image/*" (change)="onAvatarChange(char, $event)" style="display:none">
-          </label>
           @if (char.avatar) {
-            <button class="cp-avatar-remove" (click)="removeAvatar(char)" title="Afbeelding verwijderen">
-              <i class="fa-solid fa-xmark"></i>
-            </button>
+            <img [src]="char.avatar" class="cp-avatar-img" alt=""/>
+          } @else {
+            <span class="cp-avatar-placeholder" [style.background]="char.color">
+              {{ char.name[0] || '?' }}
+            </span>
           }
         </div>
 
-        <!-- Velden -->
+        <!-- Naam + beschrijving (alleen weergave) -->
         <div class="cp-fields">
-          <div class="cp-name-row">
-            <input class="cp-name-input" [(ngModel)]="char.name" (blur)="emit()"
-                   placeholder="Naam karakter" maxlength="40"/>
-            <input type="color" class="cp-color-input" [(ngModel)]="char.color"
-                   (change)="emit()" [title]="'Kleur van ' + char.name"/>
+          <div class="cp-name-display">
+            <span class="cp-name-text">
+              {{ char.name }}{{ char.lastName ? ' ' + char.lastName : '' }}
+            </span>
+            @if (char.element1 || char.element2) {
+              <span class="cp-elem-badges">
+                @if (char.element1) {
+                  <span class="cp-elem-badge" [title]="char.element1">
+                    <i class="fa-solid {{ getElementIcon(char.element1) }}"
+                       [style.color]="getElementColor(char.element1)"></i>
+                  </span>
+                }
+                @if (char.element2) {
+                  <span class="cp-elem-badge" [title]="char.element2">
+                    <i class="fa-solid {{ getElementIcon(char.element2) }}"
+                       [style.color]="getElementColor(char.element2)"></i>
+                  </span>
+                }
+              </span>
+            }
           </div>
-          <textarea class="cp-desc-input" [(ngModel)]="char.description" (blur)="emit()"
-                    placeholder="Beschrijving…" rows="2"></textarea>
+          @if (char.description) {
+            <p class="cp-desc-display">{{ char.description }}</p>
+          }
         </div>
 
         <!-- Acties -->
-        <div class="cp-actions">
+        <div class="cp-actions" (click)="$event.stopPropagation()">
           <button class="cp-edit" (click)="editRequested.emit(char)" [title]="'Bewerk ' + char.name">
             <i class="fa-solid fa-pen-to-square"></i>
           </button>

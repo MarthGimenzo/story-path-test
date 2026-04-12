@@ -3,55 +3,12 @@ import {
   Output, SimpleChanges
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Character, CharacterStats, ElementType, WeaponType } from '../story.types';
+import { ALL_ELEMENTS, ElementDef } from '../elements';
+import { Character, CharacterStats } from '../story.types';
+import { DEFAULT_WEAPONS, WeaponDef } from '../weapons';
 
-// ── Element definitions ───────────────────────────────────────────────────────
-export interface ElementDef {
-  key: ElementType;
-  label: string;
-  icon: string;   // Font Awesome icon name (without 'fa-')
-  color: string;
-  bg: string;
-}
-
-export const ALL_ELEMENTS: ElementDef[] = [
-  { key: 'licht',      label: 'Licht',      icon: 'fa-sun',                 color: '#FFD700', bg: '#1e1800' },
-  { key: 'duisternis', label: 'Duisternis', icon: 'fa-moon',                color: '#9B59B6', bg: '#140a20' },
-  { key: 'water',      label: 'Water',      icon: 'fa-droplet',             color: '#4FC3F7', bg: '#081828' },
-  { key: 'vuur',       label: 'Vuur',       icon: 'fa-fire',                color: '#FF5722', bg: '#200800' },
-  { key: 'aarde',      label: 'Aarde',      icon: 'fa-mountain',            color: '#A1887F', bg: '#140e08' },
-  { key: 'ijs',        label: 'Ijs',        icon: 'fa-snowflake',           color: '#81D4FA', bg: '#081020' },
-  { key: 'donder',     label: 'Donder',     icon: 'fa-bolt',                color: '#FFEE58', bg: '#181400' },
-  { key: 'wind',       label: 'Wind',       icon: 'fa-wind',                color: '#80DEEA', bg: '#081818' },
-  { key: 'geluid',     label: 'Geluid',     icon: 'fa-music',               color: '#F48FB1', bg: '#200818' },
-  { key: 'tijd',       label: 'Tijd',       icon: 'fa-hourglass-half',      color: '#FFB74D', bg: '#180e00' },
-  { key: 'ruimte',     label: 'Ruimte',     icon: 'fa-infinity',            color: '#7986CB', bg: '#080820' },
-  { key: 'schepping',  label: 'Schepping',  icon: 'fa-wand-magic-sparkles', color: '#A5D6A7', bg: '#081808' },
-  { key: 'ether',      label: 'Ether',      icon: 'fa-atom',                color: '#80CBC4', bg: '#081818' },
-];
-
-// ── Weapon types ──────────────────────────────────────────────────────────────
-export const WEAPON_TYPES: { key: WeaponType; label: string }[] = [
-  { key: 'geen',       label: 'Geen' },
-  { key: 'zwaard',     label: 'Zwaard' },
-  { key: 'langzwaard', label: 'Langzwaard' },
-  { key: 'katana',     label: 'Katana' },
-  { key: 'dolk',       label: 'Dolk' },
-  { key: 'bijl',       label: 'Bijl' },
-  { key: 'strijdbijl', label: 'Strijdbijl' },
-  { key: 'speer',      label: 'Speer' },
-  { key: 'lans',       label: 'Lans' },
-  { key: 'boog',       label: 'Boog' },
-  { key: 'kruisboog',  label: 'Kruisboog' },
-  { key: 'staf',       label: 'Staf' },
-  { key: 'toverstok',  label: 'Toverstok' },
-  { key: 'schild',     label: 'Schild' },
-  { key: 'vuisten',    label: 'Vuisten' },
-  { key: 'zweep',      label: 'Zweep' },
-  { key: 'werpwapen',  label: 'Werpwapen' },
-  { key: 'blaaspijp',  label: 'Blaaspijp' },
-  { key: 'instrument', label: 'Instrument' },
-];
+export { ALL_ELEMENTS } from '../elements';
+export type { ElementDef } from '../elements';
 
 // ── Default stats ─────────────────────────────────────────────────────────────
 export const DEFAULT_STATS: CharacterStats = {
@@ -90,8 +47,8 @@ export const STAGGER_STATS: StatDef[] = [
   { key: 'staggerResistance', name: 'Staggerweerstand', sub: 'Stagger Resistance', color: 'linear-gradient(90deg,#3a3a3a,#666666)' },
 ];
 
-// Mapping element key → CharacterStats resistance key
-const ELEM_RESIST: Record<ElementType, keyof CharacterStats> = {
+// Mapping default element key → CharacterStats resistance field
+const ELEM_RESIST: Record<string, keyof CharacterStats | undefined> = {
   licht:      'lightResistance',
   duisternis: 'darknessResistance',
   water:      'waterResistance',
@@ -132,22 +89,38 @@ export const STATUS_RESISTANCES: StatusDef[] = [
 })
 export class CharacterSheet implements OnInit, OnChanges {
   @Input() character!: Character;
+  /** Extra custom elementen bovenop de 13 standaard. */
+  @Input() customElements: ElementDef[] = [];
+  /** Extra custom wapens bovenop de standaard lijst. */
+  @Input() customWeapons: WeaponDef[] = [];
+
   @Output() saved  = new EventEmitter<Character>();
   @Output() closed = new EventEmitter<void>();
 
   draft!: Character;
 
-  readonly elements      = ALL_ELEMENTS;
-  readonly weaponTypes   = WEAPON_TYPES;
+  // De 13 standaard elementen worden altijd getoond in de resistentie-sectie
+  readonly defaultElements = ALL_ELEMENTS;
+
+  /** Alle wapens: standaard + custom. */
+  get allWeapons(): WeaponDef[] {
+    return [...DEFAULT_WEAPONS, ...this.customWeapons];
+  }
   readonly coreStats     = CORE_STATS;
   readonly staggerStats  = STAGGER_STATS;
   readonly statusResist  = STATUS_RESISTANCES;
 
   openElement1Picker = false;
   openElement2Picker = false;
+  activePopoverKey: string | null = null;
 
   avatarDragOver   = false;
   fullBodyDragOver = false;
+
+  /** Alle elementen beschikbaar in de pickers (standaard + custom). */
+  get pickerElements(): ElementDef[] {
+    return [...ALL_ELEMENTS, ...this.customElements];
+  }
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
   ngOnInit(): void { this.initDraft(); }
@@ -164,23 +137,24 @@ export class CharacterSheet implements OnInit, OnChanges {
     };
     this.openElement1Picker = false;
     this.openElement2Picker = false;
+    this.activePopoverKey = null;
   }
 
   // ── Element helpers ───────────────────────────────────────────────────────
   get element1Def(): ElementDef | undefined {
-    return this.elements.find(e => e.key === this.draft?.element1);
+    return this.pickerElements.find(e => e.key === this.draft?.element1);
   }
 
   get element2Def(): ElementDef | undefined {
-    return this.elements.find(e => e.key === this.draft?.element2);
+    return this.pickerElements.find(e => e.key === this.draft?.element2);
   }
 
-  selectElement1(key: ElementType | undefined): void {
+  selectElement1(key: string | undefined): void {
     this.draft.element1 = key;
     this.openElement1Picker = false;
   }
 
-  selectElement2(key: ElementType | undefined): void {
+  selectElement2(key: string | undefined): void {
     this.draft.element2 = key;
     this.openElement2Picker = false;
   }
@@ -189,19 +163,34 @@ export class CharacterSheet implements OnInit, OnChanges {
     event.stopPropagation();
     this.openElement1Picker = !this.openElement1Picker;
     this.openElement2Picker = false;
+    this.activePopoverKey = null;
   }
 
   togglePicker2(event: Event): void {
     event.stopPropagation();
     this.openElement2Picker = !this.openElement2Picker;
     this.openElement1Picker = false;
+    this.activePopoverKey = null;
   }
 
   stopProp(event: Event): void { event.stopPropagation(); }
 
-  closePickers(): void {
+  closeDropdowns(): void {
     this.openElement1Picker = false;
     this.openElement2Picker = false;
+    this.activePopoverKey = null;
+  }
+
+  // ── Popover ───────────────────────────────────────────────────────────────
+  togglePopover(key: string, event: Event): void {
+    event.stopPropagation();
+    this.activePopoverKey = this.activePopoverKey === key ? null : key;
+    this.openElement1Picker = false;
+    this.openElement2Picker = false;
+  }
+
+  getElementDef(key: string): ElementDef | undefined {
+    return this.defaultElements.find(e => e.key === key);
   }
 
   // ── Stat helpers ──────────────────────────────────────────────────────────
@@ -215,12 +204,18 @@ export class CharacterSheet implements OnInit, OnChanges {
       Math.min(100, Math.max(0, Math.round(+value || 0)));
   }
 
-  getElemResist(elemKey: ElementType): number {
-    return this.getStat(ELEM_RESIST[elemKey]);
+  hasResistStat(elemKey: string): boolean {
+    return elemKey in ELEM_RESIST;
   }
 
-  setElemResist(elemKey: ElementType, value: number | string): void {
-    this.setStat(ELEM_RESIST[elemKey], value);
+  getElemResist(elemKey: string): number {
+    const statKey = ELEM_RESIST[elemKey];
+    return statKey ? this.getStat(statKey) : 0;
+  }
+
+  setElemResist(elemKey: string, value: number | string): void {
+    const statKey = ELEM_RESIST[elemKey];
+    if (statKey) this.setStat(statKey, value);
   }
 
   // ── Photo handling ────────────────────────────────────────────────────────
