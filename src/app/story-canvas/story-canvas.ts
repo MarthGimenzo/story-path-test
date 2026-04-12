@@ -1,5 +1,5 @@
 import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, EventEmitter, Input, NgZone, OnChanges, OnDestroy, Output, SimpleChanges } from '@angular/core';
-import { Character, StoryEdge, StoryNode } from '../story.types';
+import { Chapter, Character, StoryEdge, StoryNode } from '../story.types';
 
 // ── Lane-layout hulptype ──────────────────────────────────────────────────────
 /** Elke lane is een groep van nodes die in dezelfde verticale kolom thuishoren. */
@@ -164,6 +164,9 @@ export class StoryCanvas implements OnChanges, AfterViewInit, OnDestroy {
   @Input() edges: StoryEdge[] = [];
   @Input() characters: Character[] = [];
   @Input() nodeOverrides: Record<string, { x: number; y: number }> = {};
+  @Input() chapters: Chapter[] = [{ label: 'Begin', height: 220 }];
+
+  @Output() chaptersChanged = new EventEmitter<Chapter[]>();
 
   @Output() encounterAdded   = new EventEmitter<{ parentId: string; charId: string }>();
   @Output() eventInserted    = new EventEmitter<{ edgeId: string; name: string; type: 'dungeon' | 'event' | 'split' }>();
@@ -178,9 +181,10 @@ export class StoryCanvas implements OnChanges, AfterViewInit, OnDestroy {
   // ── Layout constanten ──────────────────────────────────────────────────────
   readonly NODE_WIDTH  = 190;
   readonly COL_SPACING = 420;
-  readonly ROW_GAP     = 120;  // minimale ruimte tussen rijen
   readonly PADDING_X   = 80;
   readonly PADDING_TOP = 60;   // ruimte boven de eerste rij
+
+  readonly CHAPTER_COLORS = ['#c87840', '#4088c8', '#40b870', '#c84070', '#a0c040', '#7840c8'];
 
   readonly DOTS_PER_ROW  = 6;
   readonly CHAR_SIZE     = 22;   // breedte/hoogte van het avatar-vierkant
@@ -409,33 +413,72 @@ export class StoryCanvas implements OnChanges, AfterViewInit, OnDestroy {
   }
 
   get svgHeight(): number {
-    const rows = this.sortedRows;
-    if (rows.length === 0) return 480;
     let h = this.PADDING_TOP;
-    for (const r of rows) h += this.getRowMaxHeight(r) + this.ROW_GAP;
+    for (let r = 0; r < this.numChapterBands; r++) h += this.getChapterSectionHeight(r);
     return Math.max(480, h);
   }
 
-  /** Unieke rijindexen, oplopend gesorteerd. */
-  private get sortedRows(): number[] {
-    return [...new Set(this.nodes.map(n => n.row))].sort((a, b) => a - b);
+  // ── Hoofdstuk-layout ──────────────────────────────────────────────────────
+  get numChapterBands(): number {
+    const maxRow = this.nodes.length > 0 ? Math.max(...this.nodes.map(n => n.row)) : -1;
+    return Math.max(this.chapters.length, maxRow + 1);
   }
 
-  /** Maximale nodehoogte van alle nodes in een rij. */
-  private getRowMaxHeight(row: number): number {
-    const heights = this.nodes.filter(n => n.row === row).map(n => this.getNodeHeight(n));
-    return heights.length > 0 ? Math.max(...heights) : 100;
+  get chapterBandRows(): number[] {
+    return Array.from({ length: this.numChapterBands }, (_, i) => i);
   }
 
-  /** Midden-Y van een rij, gemeten van de bovenkant van de SVG (top-down). */
-  private getRowCenterY(row: number): number {
+  getChapterSectionHeight(row: number): number {
+    const minH = this.chapters[row]?.height ?? 220;
+    const nodesInRow = this.nodes.filter(n => n.row === row);
+    const maxNodeH = nodesInRow.length > 0
+      ? Math.max(...nodesInRow.map(n => this.getNodeHeight(n))) + 40
+      : 0;
+    return Math.max(minH, maxNodeH);
+  }
+
+  getChapterY(row: number): number {
     let y = this.PADDING_TOP;
-    for (const r of this.sortedRows) {
-      const rh = this.getRowMaxHeight(r);
-      if (r === row) return y + rh / 2;
-      y += rh + this.ROW_GAP;
-    }
+    for (let r = 0; r < row; r++) y += this.getChapterSectionHeight(r);
     return y;
+  }
+
+  getChapterColor(row: number): string {
+    return this.CHAPTER_COLORS[row % this.CHAPTER_COLORS.length];
+  }
+
+  /** Midden-Y van een hoofdstuk in schermcoördinaten (voor labels buiten de pan/zoom groep). */
+  getChapterScreenCenterY(row: number): number {
+    return this.panY + (this.getChapterY(row) + this.getChapterSectionHeight(row) / 2) * this.zoom;
+  }
+
+  /** Midden-Y van een rij. */
+  private getRowCenterY(row: number): number {
+    return this.getChapterY(row) + this.getChapterSectionHeight(row) / 2;
+  }
+
+  addChapter(): void {
+    const labels = ['Begin', 'Deel 1', 'Deel 2', 'Deel 3', 'Deel 4', 'Deel 5', 'Deel 6', 'Deel 7', 'Deel 8', 'Deel 9'];
+    const label = labels[this.chapters.length] ?? `Deel ${this.chapters.length}`;
+    this.chaptersChanged.emit([...this.chapters, { label, height: 220 }]);
+  }
+
+  removeLastChapter(): void {
+    if (!this.canRemoveLastChapter) return;
+    this.chaptersChanged.emit(this.chapters.slice(0, -1));
+  }
+
+  get canRemoveLastChapter(): boolean {
+    if (this.chapters.length <= 1) return false;
+    const lastRow = this.chapters.length - 1;
+    return !this.nodes.some(n => n.row >= lastRow);
+  }
+
+  adjustChapterHeight(row: number, delta: number): void {
+    const updated = this.chapters.map((c, i) =>
+      i === row ? { ...c, height: Math.max(100, c.height + delta) } : c
+    );
+    this.chaptersChanged.emit(updated);
   }
 
   // ── Tekstwrap ──────────────────────────────────────────────────────────────
@@ -547,7 +590,7 @@ export class StoryCanvas implements OnChanges, AfterViewInit, OnDestroy {
   }
 
   rowLabel(row: number): string {
-    return row === 0 ? 'BEGIN' : `H.${row}`;
+    return this.chapters[row]?.label ?? (row === 0 ? 'Begin' : `Deel ${row}`);
   }
 
   // ── Avatar-vierkant posities ───────────────────────────────────────────────

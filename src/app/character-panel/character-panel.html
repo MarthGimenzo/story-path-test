@@ -60,10 +60,15 @@
                     placeholder="Beschrijving…" rows="2"></textarea>
         </div>
 
-        <!-- Verwijder -->
-        <button class="cp-delete" (click)="removeCharacter(char.id)" [title]="'Verwijder ' + char.name">
-          <i class="fa-solid fa-trash-can"></i>
-        </button>
+        <!-- Acties -->
+        <div class="cp-actions">
+          <button class="cp-edit" (click)="editRequested.emit(char)" [title]="'Bewerk ' + char.name">
+            <i class="fa-solid fa-pen-to-square"></i>
+          </button>
+          <button class="cp-delete" (click)="removeCharacter(char.id)" [title]="'Verwijder ' + char.name">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+        </div>
 
       </div>
     }

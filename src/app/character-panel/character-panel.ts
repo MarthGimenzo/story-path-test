@@ -20,7 +20,8 @@ export class CharacterPanel {
   @Input() open = false;
 
   @Output() charactersChanged = new EventEmitter<Character[]>();
-  @Output() closed = new EventEmitter<void>();
+  @Output() closed            = new EventEmitter<void>();
+  @Output() editRequested     = new EventEmitter<Character>();
 
   addCharacter(): void {
     const used = new Set(this.characters.map(c => c.color));
@@ -61,9 +62,9 @@ export class CharacterPanel {
   }
 
   exportCharacters(): void {
-    // Strip avatars (base64 can be huge) — export only metadata
-    const exportData = this.characters.map(({ id, name, color, description }) =>
-      ({ id, name, color, description: description ?? '' })
+    // Strip base64 images (too large) — export only data fields
+    const exportData = this.characters.map(
+      ({ avatar: _a, fullBodyPhoto: _fb, ...rest }) => rest
     );
     const json = JSON.stringify(exportData, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
@@ -82,12 +83,17 @@ export class CharacterPanel {
       try {
         const data = JSON.parse(reader.result as string);
         if (Array.isArray(data)) {
-          // Ensure each entry has an id; generate one if missing
-          const chars: Character[] = data.map((c: Partial<Character>) => ({
-            id:          c.id ?? `char-${Date.now()}-${Math.random()}`,
-            name:        c.name ?? 'Onbekend',
-            color:       c.color ?? '#aaaaaa',
-            description: c.description ?? '',
+          const chars: Character[] = data.map((c: any) => ({
+            id:           c.id ?? `char-${Date.now()}-${Math.random()}`,
+            name:         c.name ?? 'Onbekend',
+            lastName:     c.lastName,
+            color:        c.color ?? '#aaaaaa',
+            description:  c.description ?? '',
+            element1:     c.element1,
+            element2:     c.element2,
+            weaponType:   c.weaponType,
+            itemSlots:    c.itemSlots,
+            stats:        c.stats,
           }));
           this.charactersChanged.emit(chars);
         }

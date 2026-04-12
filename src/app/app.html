@@ -81,12 +81,22 @@
     [open]="charactersOpen"
     (charactersChanged)="onCharactersChanged($event)"
     (closed)="charactersOpen = false"
+    (editRequested)="onEditCharacter($event)"
   />
+
+  @if (editingCharacter) {
+    <app-character-sheet
+      [character]="editingCharacter"
+      (saved)="onCharacterSheetSaved($event)"
+      (closed)="onCharacterSheetClosed()"
+    />
+  }
 
   <app-story-canvas
     [nodes]="nodes"
     [edges]="edges"
     [characters]="characters"
+    [chapters]="chapters"
     [nodeOverrides]="nodeOverrides"
     (encounterAdded)="onEncounterAdded($event)"
     (mergeRequested)="onMergeRequested($event)"
@@ -97,6 +107,7 @@
     (eventAppended)="onEventAppended($event)"
     (nodePositioned)="onNodePositioned($event)"
     (groupSplit)="onGroupSplit($event)"
+    (chaptersChanged)="onChaptersChanged($event)"
   />
 
 </div>

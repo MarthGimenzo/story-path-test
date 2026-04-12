@@ -42,6 +42,26 @@
     <!-- Achtergrond grid (heel groot zodat het altijd het scherm vult) -->
     <rect x="-20000" y="-20000" width="40000" height="40000" fill="url(#grid-major)"/>
 
+    <!-- Hoofdstuk-banden -->
+    @for (row of chapterBandRows; track row) {
+      <rect
+        x="-20000"
+        [attr.y]="getChapterY(row)"
+        width="60000"
+        [attr.height]="getChapterSectionHeight(row)"
+        [attr.fill]="getChapterColor(row)"
+        fill-opacity="0.055"
+      />
+      @if (row > 0) {
+        <line
+          x1="-20000" [attr.y1]="getChapterY(row)"
+          x2="40000"  [attr.y2]="getChapterY(row)"
+          [attr.stroke]="getChapterColor(row - 1)" stroke-width="1"
+          stroke-dasharray="10,10" opacity="0.25"
+        />
+      }
+    }
+
     <!-- Verticale tijdlijn-banen -->
     @for (node of nodes; track node.id) {
       @if (node.row === 0) {
@@ -55,15 +75,6 @@
       }
     }
 
-    <!-- Rij-labels -->
-    @for (row of activeRows; track row) {
-      <text
-        [attr.x]="PADDING_X - 10"
-        [attr.y]="getRowLabelY(row)"
-        text-anchor="end" fill="#7a5a38"
-        font-size="11" font-family="Cinzel, Georgia, serif" letter-spacing="1"
-      >{{ rowLabel(row) }}</text>
-    }
 
     <!-- Pijlen -->
     @for (edge of edges; track edge.id) {
@@ -343,6 +354,29 @@
 
     </g>
 
+    <!-- Hoofdstuk-labels (vaste X, meebewegende Y) -->
+    @for (row of chapterBandRows; track row) {
+      <foreignObject
+        x="6"
+        [attr.y]="getChapterScreenCenterY(row) - 22"
+        width="56" height="44"
+        style="overflow:visible"
+      >
+        <div class="chapter-height-btns">
+          <button class="chapter-height-btn" (click)="adjustChapterHeight(row, 40)" title="Hoger">▲</button>
+          <button class="chapter-height-btn" (click)="adjustChapterHeight(row, -40)" title="Lager">▼</button>
+        </div>
+      </foreignObject>
+      <text
+        x="64"
+        [attr.y]="getChapterScreenCenterY(row) + 4"
+        text-anchor="start"
+        [attr.fill]="getChapterColor(row)"
+        font-size="11" font-family="Cinzel, Georgia, serif" letter-spacing="1"
+        opacity="0.9"
+      >{{ rowLabel(row) }}</text>
+    }
+
   </svg>
 
   @if (nodes.length === 0) {
@@ -356,6 +390,17 @@
     </button>
     <button class="zoom-label-btn" (click)="zoomReset()" title="Reset naar 100%">{{ zoomLabel }}</button>
     <button class="zoom-btn" (click)="zoomOut()" [disabled]="zoom <= ZOOM_MIN" title="Uitzoomen (−)">
+      <i class="fa-solid fa-minus"></i>
+    </button>
+  </div>
+
+  <!-- ── Hoofdstuk controls ── -->
+  <div class="chapter-controls">
+    <span class="chapter-controls-label">Hoofdstuk</span>
+    <button class="zoom-btn" (click)="addChapter()" title="Hoofdstuk toevoegen">
+      <i class="fa-solid fa-plus"></i>
+    </button>
+    <button class="zoom-btn" [disabled]="!canRemoveLastChapter" (click)="removeLastChapter()" title="Laatste hoofdstuk verwijderen">
       <i class="fa-solid fa-minus"></i>
     </button>
   </div>

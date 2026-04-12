@@ -1,9 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CharacterPanel } from './character-panel/character-panel';
+import { CharacterSheet } from './character-panel/character-sheet';
 import { SettingsSidebar } from './settings-sidebar/settings-sidebar';
 import { StoryCanvas } from './story-canvas/story-canvas';
-import { Character, StoryEdge, StoryNode } from './story.types';
+import { Chapter, Character, StoryEdge, StoryNode } from './story.types';
 
 type NodeOverrides = Record<string, { x: number; y: number }>;
 
@@ -16,6 +17,7 @@ interface Snapshot {
 
 interface ProjectData extends Snapshot {
   characters: Character[];
+  chapters:   Chapter[];
 }
 
 @Component({
@@ -23,14 +25,16 @@ interface ProjectData extends Snapshot {
   templateUrl: './app.html',
   styleUrl: './app.css',
   standalone: true,
-  imports: [SettingsSidebar, StoryCanvas, CharacterPanel, FormsModule],
+  imports: [SettingsSidebar, StoryCanvas, CharacterPanel, CharacterSheet, FormsModule],
 })
 export class App implements OnInit {
   settingsOpen    = false;
   charactersOpen  = false;
+  editingCharacter: Character | null = null;
   nodeOverrides: NodeOverrides = {};
   selectedStarters = new Set<string>();
   characters: Character[] = [];
+  chapters: Chapter[] = [{ label: 'Begin', height: 220 }];
 
   // ── Undo / Redo ───────────────────────────────────────────────────────────
   private history: Snapshot[] = [];
@@ -101,7 +105,7 @@ export class App implements OnInit {
         const d = JSON.parse(legacy) as Snapshot;
         if (Array.isArray(d.starters)) {
           const all = this.getAllProjects();
-          all['Mijn verhaal'] = { ...d, characters: [] };
+          all['Mijn verhaal'] = { ...d, characters: [], chapters: [{ label: 'Begin', height: 220 }] };
           localStorage.setItem(this.PROJECTS_KEY, JSON.stringify(all));
           localStorage.removeItem('story-path-save');
         }
@@ -115,6 +119,7 @@ export class App implements OnInit {
       this.currentProject = name;
       const snap = all[name];
       this.characters      = snap.characters ?? [];
+      this.chapters        = snap.chapters ?? [{ label: 'Begin', height: 220 }];
       this.selectedStarters = new Set(snap.starters ?? []);
       this.extraNodes    = snap.nodes ?? [];
       this.extraEdges    = snap.edges ?? [];
@@ -127,6 +132,7 @@ export class App implements OnInit {
     const all = this.getAllProjects();
     all[this.currentProject] = {
       characters: this.characters,
+      chapters:   this.chapters,
       starters:   [...this.selectedStarters],
       nodes:      this.extraNodes,
       edges:      this.extraEdges,
@@ -145,6 +151,7 @@ export class App implements OnInit {
     if (!snap) return;
     this.currentProject   = name;
     this.characters       = snap.characters ?? [];
+    this.chapters         = snap.chapters ?? [{ label: 'Begin', height: 220 }];
     this.selectedStarters = new Set(snap.starters ?? []);
     this.extraNodes       = snap.nodes ?? [];
     this.extraEdges       = snap.edges ?? [];
@@ -171,6 +178,7 @@ export class App implements OnInit {
   newProject(): void {
     this.currentProject   = 'Nieuw verhaal';
     this.characters       = [];
+    this.chapters         = [{ label: 'Begin', height: 220 }];
     this.selectedStarters = new Set();
     this.extraNodes       = [];
     this.extraEdges       = [];
@@ -186,6 +194,23 @@ export class App implements OnInit {
     this.selectedStarters = new Set(
       [...this.selectedStarters].filter(id => chars.some(c => c.id === id))
     );
+  }
+
+  onEditCharacter(char: Character): void {
+    this.editingCharacter = char;
+  }
+
+  onCharacterSheetSaved(updated: Character): void {
+    this.characters = this.characters.map(c => c.id === updated.id ? updated : c);
+    this.editingCharacter = null;
+  }
+
+  onCharacterSheetClosed(): void {
+    this.editingCharacter = null;
+  }
+
+  onChaptersChanged(chapters: Chapter[]): void {
+    this.chapters = chapters;
   }
 
   onNodePositioned(event: { nodeId: string; x: number; y: number }): void {

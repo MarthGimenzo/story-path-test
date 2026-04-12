@@ -249,7 +249,27 @@
 .cp-desc-input:focus { border-color: #7a5028; }
 .cp-desc-input::placeholder { color: #4a2e10; }
 
-/* ── Delete ── */
+/* ── Actions ── */
+.cp-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.cp-edit {
+  background: none;
+  border: none;
+  color: #5a3a1a;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 5px;
+  transition: color 0.15s, background 0.15s;
+}
+.cp-edit:hover { color: #e8a840; background: rgba(232, 168, 64, 0.1); }
+
 .cp-delete {
   background: none;
   border: none;
@@ -259,8 +279,6 @@
   padding: 4px 6px;
   border-radius: 5px;
   transition: color 0.15s, background 0.15s;
-  flex-shrink: 0;
-  align-self: center;
 }
 .cp-delete:hover { color: #e05a30; background: rgba(224, 90, 48, 0.1); }
 

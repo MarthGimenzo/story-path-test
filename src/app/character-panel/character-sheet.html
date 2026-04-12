@@ -1,0 +1,355 @@
+<div class="cs-overlay" (click)="close()" (keydown)="onOverlayKey($event)" tabindex="-1">
+  <div class="cs-modal" (click)="$event.stopPropagation(); closePickers()">
+
+    <!-- ── Header ──────────────────────────────────────────────────────────── -->
+    <div class="cs-header">
+      <div class="cs-header-left">
+        <i class="fa-solid fa-scroll cs-header-icon"></i>
+        <div>
+          <div class="cs-header-name">
+            {{ draft.name || '—' }}{{ draft.lastName ? (' ' + draft.lastName) : '' }}
+          </div>
+          <div class="cs-header-sub">Character Sheet</div>
+        </div>
+      </div>
+      <div class="cs-header-actions">
+        <button class="cs-btn-save" (click)="save()">
+          <i class="fa-solid fa-floppy-disk"></i> Opslaan
+        </button>
+        <button class="cs-btn-close" (click)="close()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Scrollable body ─────────────────────────────────────────────────── -->
+    <div class="cs-scroll">
+
+      <!-- ── Main: 3 kolommen ─────────────────────────────────────────────── -->
+      <div class="cs-body">
+
+        <!-- Kolom 1: Foto's -------------------------------------------------- -->
+        <div class="cs-col-photos">
+          <div class="cs-photo-label-above">Avatar</div>
+
+          <!-- Avatar drop zone -->
+          <div class="cs-photo-zone cs-avatar-zone"
+               [class.cs-drag-over]="avatarDragOver"
+               (click)="avatarInput.click()"
+               (dragover)="$event.preventDefault(); avatarDragOver = true"
+               (dragleave)="avatarDragOver = false"
+               (drop)="onAvatarDrop($event)">
+            <input #avatarInput type="file" accept="image/*"
+                   style="display:none" (change)="onAvatarFile($event)">
+            @if (draft.avatar) {
+              <img class="cs-photo-img" [src]="draft.avatar" alt="">
+              <button class="cs-photo-remove"
+                      (click)="$event.stopPropagation(); draft.avatar = undefined"
+                      title="Verwijder avatar">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            } @else {
+              <div class="cs-photo-empty">
+                <i class="fa-solid fa-user cs-photo-icon"></i>
+                <span class="cs-photo-hint">Sleep of klik</span>
+              </div>
+            }
+          </div>
+
+          <div class="cs-photo-label-above cs-photo-label-body">Full Body</div>
+
+          <!-- Full body drop zone -->
+          <div class="cs-photo-zone cs-fullbody-zone"
+               [class.cs-drag-over]="fullBodyDragOver"
+               (click)="fullBodyInput.click()"
+               (dragover)="$event.preventDefault(); fullBodyDragOver = true"
+               (dragleave)="fullBodyDragOver = false"
+               (drop)="onFullBodyDrop($event)">
+            <input #fullBodyInput type="file" accept="image/*"
+                   style="display:none" (change)="onFullBodyFile($event)">
+            @if (draft.fullBodyPhoto) {
+              <img class="cs-photo-img" [src]="draft.fullBodyPhoto" alt="">
+              <button class="cs-photo-remove"
+                      (click)="$event.stopPropagation(); draft.fullBodyPhoto = undefined"
+                      title="Verwijder foto">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            } @else {
+              <div class="cs-photo-empty">
+                <i class="fa-solid fa-person cs-photo-icon"></i>
+                <span class="cs-photo-hint">Sleep of klik</span>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Kolom 2: Karakter info ------------------------------------------- -->
+        <div class="cs-col-info">
+
+          <!-- Naam & achternaam -->
+          <div class="cs-field-row">
+            <div class="cs-field">
+              <label class="cs-label">Naam</label>
+              <input class="cs-input" [(ngModel)]="draft.name"
+                     placeholder="Voornaam" maxlength="40">
+            </div>
+            <div class="cs-field">
+              <label class="cs-label">Achternaam</label>
+              <input class="cs-input" [(ngModel)]="draft.lastName"
+                     placeholder="Achternaam" maxlength="40">
+            </div>
+          </div>
+
+          <!-- Kleur, item vakjes, wapen -->
+          <div class="cs-field-row">
+            <div class="cs-field cs-field-narrow">
+              <label class="cs-label">Kleur</label>
+              <input type="color" class="cs-color" [(ngModel)]="draft.color"
+                     [title]="'Kleur van ' + draft.name">
+            </div>
+            <div class="cs-field cs-field-narrow">
+              <label class="cs-label">Item vakjes</label>
+              <input type="number" class="cs-input cs-input-num"
+                     [(ngModel)]="draft.itemSlots" min="0" max="99" placeholder="0">
+            </div>
+            <div class="cs-field cs-field-grow">
+              <label class="cs-label">Wapentype</label>
+              <select class="cs-select" [(ngModel)]="draft.weaponType">
+                @for (wt of weaponTypes; track wt.key) {
+                  <option [value]="wt.key">{{ wt.label }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <!-- Elementen -->
+          <div class="cs-field-row">
+
+            <!-- Element 1 -->
+            <div class="cs-field cs-elem-field">
+              <label class="cs-label">Element 1</label>
+              <div class="cs-elem-trigger"
+                   [class.cs-elem-trigger--active]="element1Def"
+                   [style.border-color]="element1Def?.color || ''"
+                   (click)="togglePicker1($event)">
+                @if (element1Def) {
+                  <span class="cs-elem-dot"
+                        [style.background]="element1Def.bg"
+                        [style.color]="element1Def.color">
+                    <i class="fa-solid {{ element1Def.icon }}"></i>
+                  </span>
+                  <span class="cs-elem-trigger-label"
+                        [style.color]="element1Def.color">
+                    {{ element1Def.label }}
+                  </span>
+                } @else {
+                  <span class="cs-elem-dot cs-elem-dot--empty">
+                    <i class="fa-solid fa-circle-dot"></i>
+                  </span>
+                  <span class="cs-elem-trigger-label cs-elem-trigger-label--empty">Geen</span>
+                }
+                <i class="fa-solid fa-chevron-down cs-elem-chevron"
+                   [class.cs-elem-chevron--open]="openElement1Picker"></i>
+              </div>
+              @if (openElement1Picker) {
+                <div class="cs-elem-picker" (click)="stopProp($event)">
+                  <button class="cs-elem-option cs-elem-none-btn"
+                          (click)="selectElement1(undefined)">
+                    <i class="fa-solid fa-ban"></i> Geen
+                  </button>
+                  @for (el of elements; track el.key) {
+                    <button class="cs-elem-option"
+                            [class.cs-elem-option--active]="draft.element1 === el.key"
+                            [style.background]="draft.element1 === el.key ? el.bg : ''"
+                            (click)="selectElement1(el.key)">
+                      <i class="fa-solid {{ el.icon }}"
+                         [style.color]="el.color"></i>
+                      <span [style.color]="el.color">{{ el.label }}</span>
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+
+            <!-- Element 2 -->
+            <div class="cs-field cs-elem-field">
+              <label class="cs-label">Element 2</label>
+              <div class="cs-elem-trigger"
+                   [class.cs-elem-trigger--active]="element2Def"
+                   [style.border-color]="element2Def?.color || ''"
+                   (click)="togglePicker2($event)">
+                @if (element2Def) {
+                  <span class="cs-elem-dot"
+                        [style.background]="element2Def.bg"
+                        [style.color]="element2Def.color">
+                    <i class="fa-solid {{ element2Def.icon }}"></i>
+                  </span>
+                  <span class="cs-elem-trigger-label"
+                        [style.color]="element2Def.color">
+                    {{ element2Def.label }}
+                  </span>
+                } @else {
+                  <span class="cs-elem-dot cs-elem-dot--empty">
+                    <i class="fa-solid fa-circle-dot"></i>
+                  </span>
+                  <span class="cs-elem-trigger-label cs-elem-trigger-label--empty">Geen</span>
+                }
+                <i class="fa-solid fa-chevron-down cs-elem-chevron"
+                   [class.cs-elem-chevron--open]="openElement2Picker"></i>
+              </div>
+              @if (openElement2Picker) {
+                <div class="cs-elem-picker" (click)="stopProp($event)">
+                  <button class="cs-elem-option cs-elem-none-btn"
+                          (click)="selectElement2(undefined)">
+                    <i class="fa-solid fa-ban"></i> Geen
+                  </button>
+                  @for (el of elements; track el.key) {
+                    <button class="cs-elem-option"
+                            [class.cs-elem-option--active]="draft.element2 === el.key"
+                            [style.background]="draft.element2 === el.key ? el.bg : ''"
+                            (click)="selectElement2(el.key)">
+                      <i class="fa-solid {{ el.icon }}"
+                         [style.color]="el.color"></i>
+                      <span [style.color]="el.color">{{ el.label }}</span>
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Beschrijving -->
+          <div class="cs-field cs-field-desc">
+            <label class="cs-label">Beschrijving</label>
+            <textarea class="cs-textarea" [(ngModel)]="draft.description"
+                      rows="6" placeholder="Karakter beschrijving…"></textarea>
+          </div>
+        </div>
+
+        <!-- Kolom 3: Statistieken -------------------------------------------- -->
+        <div class="cs-col-stats">
+          <div class="cs-stats-header">
+            <i class="fa-solid fa-chart-bar"></i> Statistieken
+          </div>
+
+          <div class="cs-stats-list">
+            @for (stat of coreStats; track stat.key) {
+              <div class="cs-stat-row">
+                <div class="cs-stat-labels">
+                  <span class="cs-stat-name">{{ stat.name }}</span>
+                  <span class="cs-stat-sub">{{ stat.sub }}</span>
+                </div>
+                <div class="cs-stat-bar-wrap">
+                  <div class="cs-stat-bar-track">
+                    <div class="cs-stat-bar-fill"
+                         [style.width.%]="getStat(stat.key)"
+                         [style.background]="stat.color"></div>
+                  </div>
+                  <input type="range" min="0" max="100" class="cs-stat-range"
+                         [ngModel]="getStat(stat.key)"
+                         (ngModelChange)="setStat(stat.key, $event)">
+                </div>
+                <input type="number" min="0" max="100" class="cs-stat-num"
+                       [ngModel]="getStat(stat.key)"
+                       (ngModelChange)="setStat(stat.key, $event)">
+              </div>
+            }
+          </div>
+
+          <div class="cs-stats-divider"></div>
+          <div class="cs-stats-header cs-stats-header--sub">
+            <i class="fa-solid fa-shield-halved"></i> Stagger
+          </div>
+
+          <div class="cs-stats-list">
+            @for (stat of staggerStats; track stat.key) {
+              <div class="cs-stat-row">
+                <div class="cs-stat-labels">
+                  <span class="cs-stat-name">{{ stat.name }}</span>
+                  <span class="cs-stat-sub">{{ stat.sub }}</span>
+                </div>
+                <div class="cs-stat-bar-wrap">
+                  <div class="cs-stat-bar-track">
+                    <div class="cs-stat-bar-fill"
+                         [style.width.%]="getStat(stat.key)"
+                         [style.background]="stat.color"></div>
+                  </div>
+                  <input type="range" min="0" max="100" class="cs-stat-range"
+                         [ngModel]="getStat(stat.key)"
+                         (ngModelChange)="setStat(stat.key, $event)">
+                </div>
+                <input type="number" min="0" max="100" class="cs-stat-num"
+                       [ngModel]="getStat(stat.key)"
+                       (ngModelChange)="setStat(stat.key, $event)">
+              </div>
+            }
+          </div>
+        </div>
+      </div><!-- /cs-body -->
+
+      <!-- ── Resistentie sectie ─────────────────────────────────────────────── -->
+      <div class="cs-resistances">
+
+        <!-- Elementaire resistentie -->
+        <div class="cs-resist-block">
+          <div class="cs-resist-title">
+            <i class="fa-solid fa-shield-halved"></i> Elementaire Resistentie
+          </div>
+          <div class="cs-resist-grid">
+            @for (el of elements; track el.key) {
+              <div class="cs-resist-row">
+                <span class="cs-resist-icon" [style.color]="el.color">
+                  <i class="fa-solid {{ el.icon }}"></i>
+                </span>
+                <span class="cs-resist-name">{{ el.label }}</span>
+                <div class="cs-stat-bar-wrap cs-resist-bar">
+                  <div class="cs-stat-bar-track">
+                    <div class="cs-stat-bar-fill"
+                         [style.width.%]="getElemResist(el.key)"
+                         [style.background]="el.color"
+                         style="opacity:0.85"></div>
+                  </div>
+                  <input type="range" min="0" max="100" class="cs-stat-range"
+                         [ngModel]="getElemResist(el.key)"
+                         (ngModelChange)="setElemResist(el.key, $event)">
+                </div>
+                <input type="number" min="0" max="100" class="cs-stat-num"
+                       [ngModel]="getElemResist(el.key)"
+                       (ngModelChange)="setElemResist(el.key, $event)">
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Status effect weerstand -->
+        <div class="cs-resist-block">
+          <div class="cs-resist-title">
+            <i class="fa-solid fa-skull"></i> Statuseffect Weerstand
+          </div>
+          <div class="cs-resist-grid cs-resist-grid--status">
+            @for (st of statusResist; track st.key) {
+              <div class="cs-resist-row">
+                <span class="cs-resist-name cs-resist-name--status">{{ st.label }}</span>
+                <div class="cs-stat-bar-wrap cs-resist-bar">
+                  <div class="cs-stat-bar-track">
+                    <div class="cs-stat-bar-fill"
+                         [style.width.%]="getStat(st.key)"
+                         [style.background]="st.color"></div>
+                  </div>
+                  <input type="range" min="0" max="100" class="cs-stat-range"
+                         [ngModel]="getStat(st.key)"
+                         (ngModelChange)="setStat(st.key, $event)">
+                </div>
+                <input type="number" min="0" max="100" class="cs-stat-num"
+                       [ngModel]="getStat(st.key)"
+                       (ngModelChange)="setStat(st.key, $event)">
+              </div>
+            }
+          </div>
+        </div>
+
+      </div><!-- /cs-resistances -->
+
+    </div><!-- /cs-scroll -->
+  </div><!-- /cs-modal -->
+</div><!-- /cs-overlay -->
